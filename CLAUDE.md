@@ -5,6 +5,7 @@
 - **UI・操作の基準**: `docs/mock/FACET_interactive_mock.html`（v1.3）。配置と相互作用の参照であり、サンプルデータ・インメモリ状態・不完全な処理は本番仕様ではない。v1.1（Windows 2000 風）の層は採用しない。
 - **実装計画**: `docs/IMPLEMENTATION_PLAN.md`。**設計判断**: `docs/DECISIONS.md`（DESIGN を変えるときは ADR を追加）。
 - **受け入れテスト対応表**: `docs/TEST_MATRIX.md`（SPEC §11 の全 ID とテストファイル）。
+- **引き継ぎメモ**: `docs/HANDOFF.md` があれば最初に読む（未解決の課題と環境メモ）。
 - REQ（確定要件）は変更しない。曖昧な点は推奨案と理由を示して確認する。
 
 ## 技術上のガードレール
