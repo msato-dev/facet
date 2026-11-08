@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, readdir, rm, stat, symlink, utimes, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { applyCommand, type Command } from '../../src/shared/domain/commands'
@@ -97,6 +97,41 @@ describe('vault persistence (DAT-05)', () => {
     const b = step(a, { type: 'note.updateBody', id, body: 'v2 from FACET', baseRev: null })
     await expect(repo.persist(a, b)).rejects.toMatchObject({ code: 'conflict' })
     expect(await readFile(file, 'utf8')).toBe('# Shared\n\nexternal edit')
+  })
+
+  it('detects an external edit that keeps the same size and mtime', async () => {
+    const first = await newVault()
+    const a0 = step(first.loaded.state, { type: 'note.create', title: 'Shared', body: 'aaaa' })
+    await first.repo.persist(first.loaded.state, a0)
+    const id = Object.keys(a0.notes)[0]
+    const file = path.join(first.repo.root, 'notes', `${id}.md`)
+    const t = 1_700_000_000 // whole seconds, so the restored mtime is bit-identical
+    await utimes(file, t, t)
+    const { repo, loaded } = await VaultRepository.open(first.repo.root)
+    const a = loaded.state
+    const before = await stat(file)
+    await writeFile(file, '# Shared\n\nbbbb') // same length
+    await utimes(file, t, t) // timestamp preserved (e.g. sync tools, cp -p)
+    const after = await stat(file)
+    expect([after.size, after.mtimeMs]).toEqual([before.size, before.mtimeMs])
+    const b = step(a, { type: 'note.updateBody', id, body: 'from FACET', baseRev: null })
+    await expect(repo.persist(a, b)).rejects.toMatchObject({ code: 'conflict' })
+    expect(await readFile(file, 'utf8')).toBe('# Shared\n\nbbbb')
+  })
+
+  it('treats an externally deleted file as a conflict instead of recreating it', async () => {
+    const { repo, loaded } = await newVault()
+    const a = step(loaded.state, { type: 'note.create', title: 'Gone', body: 'v1' })
+    await repo.persist(loaded.state, a)
+    const id = Object.keys(a.notes)[0]
+    const file = path.join(repo.root, 'notes', `${id}.md`)
+    await rm(file)
+    const b = step(a, { type: 'note.updateBody', id, body: 'v2', baseRev: null })
+    await expect(repo.persist(a, b)).rejects.toMatchObject({
+      code: 'conflict',
+      conflictFiles: [`notes/${id}.md`],
+    })
+    await expect(stat(file)).rejects.toThrow()
   })
 
   it('imports orphan markdown files and reports missing titles', async () => {

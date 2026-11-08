@@ -303,13 +303,11 @@ export class VaultRepository {
     for (const rel of rels) {
       const knownStamp = this.known.get(rel)
       const current = await stampOf(await this.abs(rel))
-      if (!knownStamp && !current) continue
-      if (!knownStamp || !current) {
-        if (current && !knownStamp) conflicts.push(rel)
-        continue // a file deleted externally is simply recreated
-      }
-      if (current.size === knownStamp.size && current.mtimeMs === knownStamp.mtimeMs) continue
-      if (current.hash !== knownStamp.hash) conflicts.push(rel)
+      if (!knownStamp && !current) continue // a new file
+      // Created or deleted externally: never recreate or overwrite silently (DAT-05).
+      if (!knownStamp || !current) conflicts.push(rel)
+      // Always compare content: size and mtime can match after a timestamp-preserving replace.
+      else if (current.hash !== knownStamp.hash) conflicts.push(rel)
     }
     if (conflicts.length)
       throw new VaultError(
