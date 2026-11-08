@@ -10,8 +10,8 @@ jobs:
   linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -23,17 +23,18 @@ jobs:
       - run: npm run build
       - name: E2E (Electron under Xvfb)
         run: xvfb-run --auto-servernum npx playwright test
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-linux
           path: test-results/
+          if-no-files-found: ignore
 
   windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -56,12 +57,14 @@ jobs:
             Copy-Item $exe.FullName $d
           }
           Write-Host "Portable EXE copied to two folders; settings live in %APPDATA%\FACET and are shared."
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: FACET-portable-win-x64
           path: release/FACET-*-portable-x64.exe
-      - uses: actions/upload-artifact@v4
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-windows
           path: test-results/
+          if-no-files-found: ignore
