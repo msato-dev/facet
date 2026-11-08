@@ -5,6 +5,7 @@ export default defineConfig({
   timeout: 60_000,
   fullyParallel: false,
   workers: 1,
-  reporter: [['list']],
+  // On GitHub Actions, failures are also shown as annotations (readable without gh login).
+  reporter: process.env.GITHUB_ACTIONS ? [['list'], ['github']] : [['list']],
   use: { trace: 'retain-on-failure' },
 })
