@@ -76,7 +76,9 @@ test('UI-14 / DAT-06 Settings: gear right of Search, Browse absolute path, Save/
 
   // Valid: a copy of the same vault in another folder.
   const moved = path.join(env.root, 'moved-zao')
-  await cp(env.zao.dir, moved, { recursive: true })
+  // FACET may be mid-way through an atomic write (tmp → rename); a copy must not capture the tmp file.
+  const notTmp = (p: string) => !p.endsWith('.facet-tmp')
+  await cp(env.zao.dir, moved, { recursive: true, filter: notTmp })
   await page.getByTestId('settings-button').click()
   await setTestHook(app, 'browseResult', moved)
   await page
@@ -89,7 +91,8 @@ test('UI-14 / DAT-06 Settings: gear right of Search, Browse absolute path, Save/
   await expect(page.getByTestId('settings-dialog')).toHaveCount(0)
   await expect(page.getByTestId('toast').last()).toContainText('保存しました')
   // Original vault untouched.
-  expect((await readdir(env.zao.dir)).sort()).toEqual((await readdir(moved)).sort())
+  const listing = async (d: string) => (await readdir(d)).filter(notTmp).sort()
+  expect(await listing(env.zao.dir)).toEqual(await listing(moved))
 
   await app.close()
   ;({ app, page } = await launch(env.userData))
@@ -172,5 +175,23 @@ test('Conflict: local unsaved edit vs external edit shows a conflict banner inst
   await page.keyboard.type(' local typing')
   await expect(page.getByRole('alert').filter({ hasText: '別の場所' })).toBeVisible({ timeout: 8000 })
   expect(await readFile(file, 'utf8')).toBe('# Analytical procedure\n\nExternal version.')
+  await app.close()
+})
+
+test('Markdown added to notes/ while FACET is running appears in Cards and search', async () => {
+  const env = await setupEnv()
+  const { app, page } = await launch(env.userData)
+  await page.getByTestId('tab-Cards').click()
+  const file = path.join(env.zao.dir, 'notes', 'added-outside.md')
+  await writeFile(file, '# Added outside FACET\n\nA note dropped into the vault by another tool.')
+  await expect(page.getByTestId('memo-card').filter({ hasText: 'Added outside FACET' })).toHaveCount(1, {
+    timeout: 8000,
+  })
+  await page.getByTestId('cards-search').fill('another tool')
+  await expect(page.getByTestId('memo-card')).toHaveCount(1)
+  const index = JSON.parse(await readFile(path.join(env.zao.dir, 'notes-index.json'), 'utf8'))
+  expect(Object.values(index.notes).map((n) => (n as { file: string }).file)).toContain(
+    'notes/added-outside.md',
+  )
   await app.close()
 })
