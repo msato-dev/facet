@@ -16,7 +16,23 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: node node_modules/electron/install.js
+      # The Electron binary comes from GitHub Releases, and that download sometimes fails on the
+      # runners (run 42471829890 linux, run 42474589473 windows). Cache it and retry.
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cache/electron
+          key: electron-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: electron-${{ runner.os }}-
+      - name: Install Electron binary (with retries)
+        shell: bash
+        run: |
+          for i in 1 2 3; do
+            node node_modules/electron/install.js && exit 0
+            echo "::warning::Electron download failed (attempt $i); retrying"
+            sleep 20
+          done
+          exit 1
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
@@ -39,7 +55,24 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: node node_modules/electron/install.js
+      # The Electron binary comes from GitHub Releases, and that download sometimes fails on the
+      # runners (run 42471829890 linux, run 42474589473 windows). Cache it and retry.
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ~\AppData\Local\electron\Cache
+            ~\AppData\Local\electron-builder\Cache
+          key: electron-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: electron-${{ runner.os }}-
+      - name: Install Electron binary (with retries)
+        shell: bash
+        run: |
+          for i in 1 2 3; do
+            node node_modules/electron/install.js && exit 0
+            echo "::warning::Electron download failed (attempt $i); retrying"
+            sleep 20
+          done
+          exit 1
       - run: npm test
       - name: Build portable EXE (WIN-01)
         run: npm run dist:win
