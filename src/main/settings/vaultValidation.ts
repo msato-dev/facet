@@ -46,6 +46,9 @@ export async function validateVaultForWorkspace(workspaceId: string, p: string):
         path: p,
         message: `別のWorkspace「${project.name}」のVaultです。このWorkspaceのVaultを指定してください`,
       }
+    // Read every FACET file (index, notes, structure, canvas, trash) without writing anything,
+    // so a vault that would fail to open is rejected before the old location is given up.
+    await VaultRepository.inspect(real)
     return { ok: true, path: real, message: `有効なVaultです（${project.name}）` }
   } catch (e) {
     return { ok: false, path: p, message: e instanceof VaultError ? e.message : 'Vault構造を確認できません' }

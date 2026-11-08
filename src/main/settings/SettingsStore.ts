@@ -35,10 +35,18 @@ export class SettingsStore {
   }
 
   async update(fn: (d: SettingsFile) => SettingsFile): Promise<SettingsFile> {
-    this.data = fn(structuredClone(this.data))
-    const snapshot = JSON.stringify(this.data, null, 2) + '\n'
-    this.writing = this.writing.then(() => writeFileAtomic(this.file, snapshot))
-    await this.writing
-    return this.data
+    const prev = this.data
+    const next = fn(structuredClone(prev))
+    const snapshot = JSON.stringify(next, null, 2) + '\n'
+    const run = this.writing.then(() => writeFileAtomic(this.file, snapshot))
+    this.writing = run.catch(() => undefined) // a failed write must not block later ones
+    this.data = next
+    try {
+      await run
+    } catch (e) {
+      if (this.data === next) this.data = prev // keep memory in line with the file on disk
+      throw e
+    }
+    return next
   }
 }

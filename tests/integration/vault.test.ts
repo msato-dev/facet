@@ -431,6 +431,78 @@ describe('workspace manager & settings (DAT-06, UI-14)', () => {
     await manager.dispose()
   })
 
+  it('keeps the old location and session when the new vault cannot be opened (DAT-06)', async () => {
+    const ud = path.join(tmp, 'ud')
+    const manager = new WorkspaceManager(SettingsStore.forDir(ud), () => undefined, { watch: false })
+    await manager.init()
+    const dir = path.join(tmp, 'Vault')
+    await mkdir(dir)
+    const a = (await manager.addWorkspace(dir, 'Zao')).workspace!
+    await manager.session(a.id)!.execute({ type: 'note.create', title: 'Keep', body: 'me' })
+    const copyVault = async (name: string) => {
+      const dest = path.join(tmp, name)
+      await mkdir(path.join(dest, 'notes'), { recursive: true })
+      for (const f of await readdir(dir, { withFileTypes: true }))
+        if (f.isFile()) await writeFile(path.join(dest, f.name), await readFile(path.join(dir, f.name)))
+      return dest
+    }
+    const oldSession = manager.session(a.id)
+    const settingsBefore = await readFile(path.join(ud, 'settings.json'), 'utf8')
+    const expectUnchanged = async () => {
+      expect(manager.session(a.id)).toBe(oldSession)
+      expect(manager.summaries()[0]).toMatchObject({ vaultPath: a.vaultPath, status: 'ok' })
+      expect(await readFile(path.join(ud, 'settings.json'), 'utf8')).toBe(settingsBefore)
+    }
+
+    // project.yml and the id are fine, but structure.json is broken.
+    const broken = await copyVault('broken')
+    await writeFile(path.join(broken, 'structure.json'), '{ not json')
+    const r1 = await manager.saveLocations({ [a.id]: broken })
+    expect(r1.ok).toBe(false)
+    expect(r1.results[a.id].message).toContain('structure.json')
+    await expectUnchanged()
+
+    // A schema-invalid notes index is refused too.
+    const badIndex = await copyVault('bad-index')
+    await writeFile(path.join(badIndex, 'notes-index.json'), JSON.stringify({ schemaVersion: 1, notes: 'x' }))
+    expect((await manager.saveLocations({ [a.id]: badIndex })).ok).toBe(false)
+    await expectUnchanged()
+
+    // Settings cannot be written: the change is refused and nothing switches.
+    const good = await copyVault('good')
+    await rm(path.join(ud, 'settings.json'))
+    await mkdir(path.join(ud, 'settings.json'))
+    const r3 = await manager.saveLocations({ [a.id]: good })
+    expect(r3.ok).toBe(false)
+    expect(manager.session(a.id)).toBe(oldSession)
+    expect(manager.settings.data.workspaces[0].vaultPath).toBe(a.vaultPath)
+    await manager.dispose()
+  })
+
+  it('validating a location never writes to the candidate vault', async () => {
+    const manager = new WorkspaceManager(SettingsStore.forDir(path.join(tmp, 'ud')), () => undefined, {
+      watch: false,
+    })
+    await manager.init()
+    const dir = path.join(tmp, 'Vault')
+    await mkdir(dir)
+    const a = (await manager.addWorkspace(dir, 'Zao')).workspace!
+    const cand = path.join(tmp, 'cand')
+    await mkdir(cand)
+    for (const f of await readdir(dir, { withFileTypes: true }))
+      if (f.isFile()) await writeFile(path.join(cand, f.name), await readFile(path.join(dir, f.name)))
+    // An orphan note and a leftover journal would normally be repaired on open.
+    await mkdir(path.join(cand, 'notes'))
+    await writeFile(path.join(cand, 'notes', 'orphan.md'), '# Orphan\n\nx')
+    await mkdir(path.join(cand, '.facet', 'journal'), { recursive: true })
+    await writeFile(path.join(cand, '.facet', 'journal', 'tx.json'), '{}')
+    const before = await snapshotTree(cand)
+    const v = await manager.validateLocation(a.id, cand)
+    expect(v.ok).toBe(true)
+    expect(await snapshotTree(cand)).toEqual(before)
+    await manager.dispose()
+  })
+
   it('searches across workspaces (Japanese and English) and copies notes independently', async () => {
     const manager = new WorkspaceManager(SettingsStore.forDir(path.join(tmp, 'ud')), () => undefined, {
       watch: false,
@@ -480,5 +552,16 @@ describe('bibliography', () => {
 async function snapshotDir(dir: string): Promise<Record<string, string>> {
   const out: Record<string, string> = {}
   for (const f of await readdir(dir)) out[f] = await readFile(path.join(dir, f), 'utf8')
+  return out
+}
+
+async function snapshotTree(dir: string, prefix = ''): Promise<Record<string, string>> {
+  const out: Record<string, string> = {}
+  for (const f of await readdir(dir, { withFileTypes: true })) {
+    const rel = prefix + f.name
+    if (f.isDirectory())
+      Object.assign(out, { [rel + '/']: '' }, await snapshotTree(path.join(dir, f.name), rel + '/'))
+    else out[rel] = await readFile(path.join(dir, f.name), 'utf8')
+  }
   return out
 }

@@ -33,24 +33,35 @@ export class WorkspaceManager {
     for (const w of this.settings.data.workspaces) await this.openSession(w.id, w.vaultPath)
   }
 
+  /** Open a vault as workspace `id` without registering it anywhere. Throws when it cannot be used. */
+  private async startSession(id: WorkspaceId, vaultPath: string): Promise<WorkspaceSession> {
+    const s = await WorkspaceSession.open(vaultPath, this.emit, (sess, notes) =>
+      this.search.updateNotes(sess.id, notes),
+    )
+    if (s.id !== id) throw new Error('Vault の Workspace ID が登録内容と一致しません')
+    return s
+  }
+
+  /** Make an opened session live: registry, search index and file watcher. */
+  private attachSession(id: WorkspaceId, s: WorkspaceSession): void {
+    this.sessions.set(id, s)
+    this.errors.delete(id)
+    this.search.setWorkspace(id, s.name, s.state.notes)
+    if (this.options.watch) {
+      const w = new VaultWatcher(
+        s.vaultPath,
+        (rel) => void s.handleFsChange(rel),
+        () => void s.handleBibChange(),
+      )
+      w.start(s.bibAbsPath())
+      this.watchers.set(id, w)
+    }
+  }
+
   private async openSession(id: WorkspaceId, vaultPath: string): Promise<WorkspaceSession | null> {
     try {
-      const s = await WorkspaceSession.open(vaultPath, this.emit, (sess, notes) =>
-        this.search.updateNotes(sess.id, notes),
-      )
-      if (s.id !== id) throw new Error('Vault の Workspace ID が登録内容と一致しません')
-      this.sessions.set(id, s)
-      this.errors.delete(id)
-      this.search.setWorkspace(id, s.name, s.state.notes)
-      if (this.options.watch) {
-        const w = new VaultWatcher(
-          s.vaultPath,
-          (rel) => void s.handleFsChange(rel),
-          () => void s.handleBibChange(),
-        )
-        w.start(s.bibAbsPath())
-        this.watchers.set(id, w)
-      }
+      const s = await this.startSession(id, vaultPath)
+      this.attachSession(id, s)
       return s
     } catch (e) {
       this.errors.set(id, (e as Error).message)
@@ -116,7 +127,10 @@ export class WorkspaceManager {
     return validateVaultForWorkspace(id, p)
   }
 
-  /** Apply all location changes only if every changed path is valid; otherwise keep the old ones. */
+  /**
+   * Apply all location changes only if every new vault validates and actually opens; otherwise keep
+   * the old settings and the old sessions untouched (SPEC §7, DAT-06).
+   */
   async saveLocations(paths: Record<WorkspaceId, string>): Promise<SaveLocationsResult> {
     const results: Record<WorkspaceId, VaultValidation> = {}
     const changes: Array<[WorkspaceId, string]> = []
@@ -127,14 +141,36 @@ export class WorkspaceManager {
       results[w.id] = v
       if (v.ok && v.path !== w.vaultPath) changes.push([w.id, v.path])
     }
-    if (Object.values(results).some((r) => !r.ok)) return { ok: false, results, workspaces: this.summaries() }
+    const refuse = () => ({ ok: false, results, workspaces: this.summaries() })
+    if (Object.values(results).some((r) => !r.ok)) return refuse()
+    if (!changes.length) return { ok: true, results, workspaces: this.summaries() }
+
+    // Open every new vault first. Any failure discards them and keeps the old locations.
+    const opened = new Map<WorkspaceId, WorkspaceSession>()
     for (const [id, p] of changes) {
-      await this.closeSession(id)
+      try {
+        opened.set(id, await this.startSession(id, p))
+      } catch (e) {
+        results[id] = { ok: false, path: p, message: `Vaultを開けません: ${(e as Error).message}` }
+      }
+    }
+    if (opened.size !== changes.length) return refuse()
+    try {
       await this.settings.update((d) => ({
         ...d,
-        workspaces: d.workspaces.map((w) => (w.id === id ? { ...w, vaultPath: p } : w)),
+        workspaces: d.workspaces.map((w) => {
+          const s = opened.get(w.id)
+          return s ? { ...w, vaultPath: s.vaultPath } : w
+        }),
       }))
-      await this.openSession(id, p)
+    } catch (e) {
+      for (const [id, s] of opened)
+        results[id] = { ok: false, path: s.vaultPath, message: `設定を保存できません: ${(e as Error).message}` }
+      return refuse()
+    }
+    for (const [id, s] of opened) {
+      await this.closeSession(id)
+      this.attachSession(id, s)
     }
     return { ok: true, results, workspaces: this.summaries() }
   }

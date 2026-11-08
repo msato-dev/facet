@@ -123,6 +123,15 @@ export class VaultRepository {
     return { repo, loaded }
   }
 
+  /**
+   * Load every file read-only to prove the vault opens (Vault Locations validation, DAT-06).
+   * Nothing is written: no journal rollback, no index or structure repair.
+   */
+  static async inspect(dir: string): Promise<LoadedVault> {
+    const repo = new VaultRepository(await realRootOf(dir))
+    return repo.load({ readOnly: true })
+  }
+
   private async abs(rel: string): Promise<string> {
     return resolveInVault(this.root, rel)
   }
@@ -159,9 +168,10 @@ export class VaultRepository {
     return r.data
   }
 
-  async load(): Promise<LoadedVault> {
+  async load(options: { readOnly?: boolean } = {}): Promise<LoadedVault> {
+    const readOnly = options.readOnly ?? false
     const issues: VaultIssue[] = []
-    const journals = await recoverJournals(this.root)
+    const journals = readOnly ? { recovered: 0, quarantined: [] } : await recoverJournals(this.root)
     if (journals.recovered)
       issues.push({
         kind: 'recovered-journal',
@@ -195,7 +205,7 @@ export class VaultRepository {
         .filter((d) => d.isFile() && d.name.toLowerCase().endsWith('.md'))
         .map((d) => `${FILES.notesDir}/${d.name}`)
     } catch {
-      await mkdir(path.join(this.root, FILES.notesDir), { recursive: true })
+      if (!readOnly) await mkdir(path.join(this.root, FILES.notesDir), { recursive: true })
     }
     const seen = new Set<NoteId>()
     const contents = new Map<string, string | null>()
@@ -263,8 +273,8 @@ export class VaultRepository {
 
     const state: DomainState = { notes, structure: sanitized.structure, canvas }
     const needsIndexWrite = issues.some((i) => i.kind === 'imported-orphan' || i.kind === 'missing-note-file')
-    if (needsIndexWrite) await this.writeSingle(FILES.index, json(this.buildIndex(state)))
-    if (sanitized.issues.length) await this.writeSingle(FILES.structure, json(sanitized.structure))
+    if (!readOnly && needsIndexWrite) await this.writeSingle(FILES.index, json(this.buildIndex(state)))
+    if (!readOnly && sanitized.issues.length) await this.writeSingle(FILES.structure, json(sanitized.structure))
     return { project: this.project, state, issues, trash: this.trashEntries() }
   }
 
