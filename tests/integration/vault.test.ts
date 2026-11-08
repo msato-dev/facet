@@ -176,6 +176,31 @@ describe('multi-file transactions', () => {
     await writeFile(
       path.join(jdir, 'tx1.json'),
       JSON.stringify({
+        schemaVersion: 2,
+        id: 'tx1',
+        createdAt: '',
+        ops: [{ type: 'write', target: `notes/${id}.md`, backup: 0 }],
+      }),
+    )
+    const { loaded: l2 } = await VaultRepository.open(repo.root)
+    expect(l2.state.notes[id].body).toBe('original')
+    expect(l2.issues.some((i) => i.kind === 'recovered-journal')).toBe(true)
+    expect(await readdir(jdir)).toEqual([])
+  })
+
+  it('still recovers a 0.1.0 journal (absolute paths inside the vault)', async () => {
+    const { repo, loaded } = await newVault()
+    const st = step(loaded.state, { type: 'note.create', title: 'A', body: 'original' })
+    await repo.persist(loaded.state, st)
+    const id = Object.keys(st.notes)[0]
+    const file = path.join(repo.root, 'notes', `${id}.md`)
+    const jdir = path.join(repo.root, '.facet', 'journal')
+    await mkdir(path.join(jdir, 'tx1'), { recursive: true })
+    await writeFile(path.join(jdir, 'tx1', '0.bak'), '# A\n\noriginal')
+    await writeFile(file, '# A\n\nhalf-written')
+    await writeFile(
+      path.join(jdir, 'tx1.json'),
+      JSON.stringify({
         id: 'tx1',
         createdAt: '',
         ops: [
@@ -186,6 +211,94 @@ describe('multi-file transactions', () => {
     const { loaded: l2 } = await VaultRepository.open(repo.root)
     expect(l2.state.notes[id].body).toBe('original')
     expect(l2.issues.some((i) => i.kind === 'recovered-journal')).toBe(true)
+  })
+
+  it('never executes a tampered journal: files outside the vault are untouched, the journal is quarantined', async () => {
+    const { repo } = await newVault()
+    const outsideDir = path.join(tmp, 'outside')
+    await mkdir(outsideDir)
+    const victim = path.join(outsideDir, 'victim.txt')
+    const secret = path.join(outsideDir, 'secret.txt')
+    await writeFile(victim, 'keep me')
+    await writeFile(secret, 'secret')
+    const jdir = path.join(repo.root, '.facet', 'journal')
+    await mkdir(path.join(jdir, 'evil'), { recursive: true })
+    const journals: Record<string, unknown> = {
+      // Current format with traversal / absolute paths.
+      'a.json': {
+        schemaVersion: 2,
+        id: 'a',
+        createdAt: '',
+        ops: [{ type: 'write', target: '../outside/victim.txt', backup: null }],
+      },
+      'b.json': {
+        schemaVersion: 2,
+        id: 'b',
+        createdAt: '',
+        ops: [{ type: 'write', target: victim, backup: null }],
+      },
+      'c.json': {
+        schemaVersion: 2,
+        id: 'c',
+        createdAt: '',
+        ops: [{ type: 'move', from: 'notes', to: '../outside/stolen' }],
+      },
+      // Legacy format pointing outside the vault (copy a secret in, delete a victim).
+      'd.json': {
+        id: 'd',
+        createdAt: '',
+        ops: [
+          {
+            type: 'write',
+            target: path.join(repo.root, 'notes', 'x.md'),
+            tmp: path.join(repo.root, 'notes', 'x.md.facet-tmp'),
+            backup: secret,
+          },
+        ],
+      },
+      'e.json': {
+        id: 'e',
+        createdAt: '',
+        ops: [{ type: 'write', target: victim, tmp: victim + '.facet-tmp', backup: null }],
+      },
+      // Id with path separators, id/file mismatch, ops on the journal folder, garbage.
+      'f.json': { schemaVersion: 2, id: '../f', createdAt: '', ops: [] },
+      'g.json': { schemaVersion: 2, id: 'other', createdAt: '', ops: [] },
+      'h.json': {
+        schemaVersion: 2,
+        id: 'h',
+        createdAt: '',
+        ops: [{ type: 'write', target: '.facet/journal/evil/0.bak', backup: null }],
+      },
+    }
+    for (const [name, data] of Object.entries(journals))
+      await writeFile(path.join(jdir, name), JSON.stringify(data))
+    await writeFile(path.join(jdir, 'i.json'), '{not json')
+
+    const { loaded } = await VaultRepository.open(repo.root)
+    expect(await readFile(victim, 'utf8')).toBe('keep me')
+    expect(await readFile(secret, 'utf8')).toBe('secret')
+    expect(await readdir(outsideDir)).toEqual(['secret.txt', 'victim.txt'])
+    expect(await readdir(path.join(repo.root, 'notes'))).toEqual([])
+    expect(loaded.issues.filter((i) => i.kind === 'quarantined-journal')).toHaveLength(9)
+    expect(loaded.issues.some((i) => i.kind === 'recovered-journal')).toBe(false)
+    expect((await readdir(jdir)).filter((e) => e.endsWith('.json'))).toEqual([])
+    const q = path.join(repo.root, '.facet', 'journal-quarantine')
+    const moved = (await Promise.all((await readdir(q)).map((d) => readdir(path.join(q, d))))).flat()
+    expect(moved).toEqual(expect.arrayContaining(['a.json', 'h.json', 'i.json']))
+  })
+
+  it('refuses a journal folder that is a link out of the vault', async () => {
+    const { repo } = await newVault()
+    const outside = path.join(tmp, 'outside-journal')
+    await mkdir(outside)
+    await mkdir(path.join(repo.root, '.facet'), { recursive: true })
+    await symlink(
+      outside,
+      path.join(repo.root, '.facet', 'journal'),
+      process.platform === 'win32' ? 'junction' : 'dir',
+    )
+    await expect(VaultRepository.open(repo.root)).rejects.toThrow('リンク')
   })
 })
 
@@ -295,13 +408,11 @@ describe('workspace manager & settings (DAT-06, UI-14)', () => {
     await manager
       .session(a.id)!
       .execute({ type: 'note.create', title: 'Recharge frequency', body: 'マグマ溜まりへの再注入の頻度' })
-    await manager
-      .session(b.id)!
-      .execute({
-        type: 'note.create',
-        title: 'Recharge frequency',
-        body: 'Injection events modify the thermal evolution.',
-      })
+    await manager.session(b.id)!.execute({
+      type: 'note.create',
+      title: 'Recharge frequency',
+      body: 'Injection events modify the thermal evolution.',
+    })
     const hits = manager.searchAll('recharge')
     expect(hits.map((h) => h.workspaceName).sort()).toEqual(['Chamber', 'Zao'])
     expect(manager.searchAll('再注入').map((h) => h.workspaceName)).toEqual(['Zao'])

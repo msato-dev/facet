@@ -161,11 +161,16 @@ export class VaultRepository {
 
   async load(): Promise<LoadedVault> {
     const issues: VaultIssue[] = []
-    const recovered = await recoverJournals(this.root)
-    if (recovered)
+    const journals = await recoverJournals(this.root)
+    if (journals.recovered)
       issues.push({
         kind: 'recovered-journal',
-        message: `中断された書込み ${recovered} 件をロールバックしました`,
+        message: `中断された書込み ${journals.recovered} 件をロールバックしました`,
+      })
+    for (const dir of journals.quarantined)
+      issues.push({
+        kind: 'quarantined-journal',
+        message: `不正な書込みジャーナルを実行せず ${dir} へ移しました。内容を確認してください`,
       })
     this.known.clear()
     this.noteFiles.clear()
@@ -382,9 +387,8 @@ export class VaultRepository {
       await writeFileAtomic(await this.abs(rel), content)
     } else {
       const ops: PlannedOp[] = []
-      for (const m of moves)
-        ops.push({ type: 'move', from: await this.abs(m.from), to: await this.abs(m.to) })
-      for (const [rel, content] of writes) ops.push({ type: 'write', abs: await this.abs(rel), content })
+      for (const m of moves) ops.push({ type: 'move', from: m.from, to: m.to })
+      for (const [rel, content] of writes) ops.push({ type: 'write', rel, content })
       await runTransaction(this.root, ops)
     }
     this.noteFiles = newNoteFiles

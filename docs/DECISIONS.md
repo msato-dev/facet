@@ -32,3 +32,4 @@ SPEC.md §1.1 の DESIGN 項目と §補足の未確定事項について行っ�
 | 025 | 2026-11-08 | Canvas Tools の Copy/Paste は独立したメモの複製（同じ Workspace では「(copy)」を付けた新規メモ、別 Workspace では新しい ID のコピー）。Group は複数選択中のメモを新しい Paragraph Group にまとめる | SPEC §5 の「独立コピー」原則に合わせる | Accepted |
 | 026 | 2026-11-08 | Main は依存をすべて単一ファイルにバンドルし、`dependencies` を持たない（すべて devDependencies） | ESM 専用パッケージへの対応と、portable EXE を小さく保つため | Accepted |
 | 027 | 2026-11-08 | 開発環境（WSL2）では Wine がないため portable EXE は作らず、GitHub Actions の windows-latest でビルドし、パッケージ版に対して E2E を実行する | ADR-019 の具体化 | Accepted |
+| 028 | 2026-11-08 | ジャーナルは信頼しない入力として扱う。形式 v2 は Vault 相対パスだけを保存し、一時ファイルと退避先は ID から導出する。復旧時は zod で検証し、全パスを `resolveInVault` で解決する。不正なジャーナルは実行せず `.facet/journal-quarantine/` へ移して警告する。0.1.0 の絶対パス形式は、Vault 内に収まり導出規則と一致する場合だけ変換して復旧する。`.facet/journal` がリンクなら Vault を開かない | 改変されたジャーナルを含む Vault を開くだけで Vault 外のファイルを上書き・削除できたため（ADR-015 の補強） | Accepted |

@@ -105,7 +105,12 @@ export interface BibliographyState {
 
 export interface VaultIssue {
   kind:
-    'missing-note-file' | 'imported-orphan' | 'missing-title' | 'invalid-structure-ref' | 'recovered-journal'
+    | 'missing-note-file'
+    | 'imported-orphan'
+    | 'missing-title'
+    | 'invalid-structure-ref'
+    | 'recovered-journal'
+    | 'quarantined-journal'
   message: string
   noteId?: NoteId
 }
