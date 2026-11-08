@@ -22,8 +22,8 @@ SPEC.md §11 の各 ID と、それを検証する自動テストの対応。E2E
 | DAT-02 | WikiLink | `tests/unit/markdown.test.ts` › WikiLinks、`tests/e2e/cards.spec.ts` › DAT-02 | 補完、移動、Backlinks、改名時の連鎖更新（コード・数式・エスケープは対象外）、リンク切れ |
 | DAT-03 | Paragraph | `tests/unit/markdown.test.ts` › manuscript、`tests/e2e/outline.spec.ts` › UI-11 / DAT-03 | 指定順で1段落化、H1/Groupタイトルなし、引用保持、複雑なメモは原文のまま出力して警告 |
 | DAT-04 | 配置一意 | `tests/unit/commands.test.ts` › moves・property、`tests/e2e/outline.spec.ts` › UI-09 / DAT-04 | 移動しても構造内に1回だけ、Unassigned は原稿に含まれない |
-| DAT-05 | 保存・競合 | `tests/integration/vault.test.ts` › vault persistence、`tests/e2e/reference-settings.spec.ts` › DAT-05・Conflict | 再起動後の復元、外部編集の検知、無言上書きしない、ジャーナルのロールバック |
-| DAT-06 | Vault保護 | `tests/integration/vault.test.ts` › workspace manager、`tests/e2e/reference-settings.spec.ts` › UI-14 / DAT-06 | 別Workspace・存在しない・相対パスを拒否し旧パスを維持、元Vaultは無変更 |
+| DAT-05 | 保存・競合 | `tests/integration/vault.test.ts` › vault persistence・multi-file transactions、`tests/e2e/reference-settings.spec.ts` › DAT-05・Conflict・Markdown added、`tests/e2e/unsaved.spec.ts` | 再起動後の復元、外部編集の検知（同サイズ・同 mtime も）、外部削除を競合として扱う、無言上書きしない、ジャーナルのロールバックと改変ジャーナルの隔離、外部で追加したメモの取込み、終了・Workspace 切替・メモ切替で未保存本文を失わない |
+| DAT-06 | Vault保護 | `tests/integration/vault.test.ts` › workspace manager、`tests/e2e/reference-settings.spec.ts` › UI-14 / DAT-06 | 別Workspace・存在しない・相対パス・構造が壊れたVaultを拒否し旧パスと旧セッションを維持、検証で候補Vaultに書き込まない、元Vaultは無変更 |
 | WIN-01 | Windows実行 | `.github/workflows/ci.yml`（windows-latest: portable EXE ビルド＋パッケージ版で全E2E） | **Windows 11 実機での手動確認が別途必要**（下記チェックリスト） |
 | WIN-02 | 配布更新 | `.github/workflows/ci.yml`（EXE を2フォルダーへ複製）、`tests/e2e/reference-settings.spec.ts` › DAT-05 | 設定は `%APPDATA%\FACET\settings.json`（EXE の場所に依存しない） |
 

@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import type { VaultValidation } from '../../shared/ipc/contract'
 import { Modal } from '../common/Dialogs'
-import { confirmAction, flushAllEditors, promptText, refreshWorkspaces, toast, useApp } from '../store/store'
+import { confirmAction, ensureSaved, promptText, refreshWorkspaces, toast, useApp } from '../store/store'
 
 export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const workspaces = useApp((s) => s.workspaces)
@@ -30,7 +30,8 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const save = async () => {
     setBusy(true)
     try {
-      await flushAllEditors()
+      // SPEC §7: unsaved edits are dealt with before any location changes.
+      if (!(await ensureSaved())) return
       const changed = Object.fromEntries(
         Object.entries(paths).filter(
           ([id, p]) => workspaces.find((w) => w.id === id)?.vaultPath !== p.trim(),
@@ -75,6 +76,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
       ))
     )
       return
+    if (id === useApp.getState().activeId && !(await ensureSaved())) return
     const list = await window.facet.removeWorkspace(id)
     setPaths((s) => {
       const n = { ...s }

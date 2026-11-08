@@ -187,6 +187,9 @@ export interface FacetApi {
   setPanes(panes: { leftOpen: boolean; rightOpen: boolean }): Promise<void>
   setActiveWorkspace(id: WorkspaceId): Promise<void>
   onWorkspaceEvent(cb: (e: WorkspaceEvent) => void): () => void
+  /** Main asks before closing the window; answer with closeReady(requestId, nothingUnsaved). */
+  onCloseRequest(cb: (requestId: number) => void): () => void
+  closeReady(requestId: number, ok: boolean): Promise<void>
 }
 
 export { CH } from './channels'

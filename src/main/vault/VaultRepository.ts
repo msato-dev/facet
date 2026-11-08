@@ -274,7 +274,8 @@ export class VaultRepository {
     const state: DomainState = { notes, structure: sanitized.structure, canvas }
     const needsIndexWrite = issues.some((i) => i.kind === 'imported-orphan' || i.kind === 'missing-note-file')
     if (!readOnly && needsIndexWrite) await this.writeSingle(FILES.index, json(this.buildIndex(state)))
-    if (!readOnly && sanitized.issues.length) await this.writeSingle(FILES.structure, json(sanitized.structure))
+    if (!readOnly && sanitized.issues.length)
+      await this.writeSingle(FILES.structure, json(sanitized.structure))
     return { project: this.project, state, issues, trash: this.trashEntries() }
   }
 

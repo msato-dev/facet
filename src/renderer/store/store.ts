@@ -150,13 +150,57 @@ export function confirmAction(
 // ---------------------------------------------------------------------------
 // Editor flush hooks (registered by editors with pending saves)
 
-const flushers = new Set<() => Promise<void>>()
-export function registerFlusher(fn: () => Promise<void>): () => void {
+const flushers = new Set<() => Promise<boolean>>()
+/** An editor's flusher resolves true when nothing is left unsaved, false on a conflict or error. */
+export function registerFlusher(fn: () => Promise<boolean>): () => void {
   flushers.add(fn)
   return () => flushers.delete(fn)
 }
-export async function flushAllEditors(): Promise<void> {
-  await Promise.all([...flushers].map((f) => f()))
+/** Save every open editor. Resolves false when some edit could not be saved. */
+export async function flushAllEditors(): Promise<boolean> {
+  const results = await Promise.all([...flushers].map((f) => f().catch(() => false)))
+  return results.every(Boolean)
+}
+
+// Drafts: editor text that could not be saved yet (conflict or error) and must outlive its editor,
+// e.g. when another note is selected. Kept per workspace and note until saved or discarded.
+export interface Draft {
+  body: string
+  baseRev: number
+}
+const drafts = new Map<string, Draft>()
+const draftKey = (workspaceId: WorkspaceId, noteId: NoteId) => `${workspaceId}\u0000${noteId}`
+export function getDraft(workspaceId: WorkspaceId, noteId: NoteId): Draft | undefined {
+  return drafts.get(draftKey(workspaceId, noteId))
+}
+export function setDraft(workspaceId: WorkspaceId, noteId: NoteId, draft: Draft): void {
+  drafts.set(draftKey(workspaceId, noteId), draft)
+}
+export function clearDraft(workspaceId: WorkspaceId, noteId: NoteId): void {
+  drafts.delete(draftKey(workspaceId, noteId))
+}
+export function hasDrafts(): boolean {
+  return drafts.size > 0
+}
+
+export const UNSAVED_MESSAGE =
+  '保存できていない変更があります。競合バナーで「最新を読み込む」か「自分の内容で上書き」を選んでください'
+
+/** Flush before leaving the current workspace; tells the user and returns false when that failed. */
+export async function ensureSaved(): Promise<boolean> {
+  if (await flushAllEditors()) return true
+  toast(UNSAVED_MESSAGE, 'error')
+  return false
+}
+
+/** Main asks before the window closes: flush editors, and report whether anything is left unsaved. */
+async function answerCloseRequest(requestId: number): Promise<void> {
+  let ok = false
+  try {
+    ok = (await flushAllEditors()) && !hasDrafts()
+  } finally {
+    await window.facet.closeReady(requestId, ok)
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -175,16 +219,18 @@ export async function initApp(): Promise<void> {
     e2e: init.e2e,
   })
   window.facet.onWorkspaceEvent(handleWorkspaceEvent)
+  window.facet.onCloseRequest((id) => void answerCloseRequest(id))
   if (init.activeWorkspaceId) await switchWorkspace(init.activeWorkspaceId)
   set({ ready: true })
 }
 
-export async function switchWorkspace(id: WorkspaceId): Promise<void> {
-  await flushAllEditors()
+/** Returns false (and stays) when unsaved edits in the current workspace could not be saved. */
+export async function switchWorkspace(id: WorkspaceId): Promise<boolean> {
+  if (!(await ensureSaved())) return false
   const r = await window.facet.openWorkspace(id)
   if (!r.ok) {
     set({ activeId: id, snapshot: null, loadError: r.message })
-    return
+    return true
   }
   const first = Object.values(r.snapshot.state.notes).find((n) => !n.archived)
   set({
@@ -202,6 +248,7 @@ export async function switchWorkspace(id: WorkspaceId): Promise<void> {
   })
   void window.facet.setActiveWorkspace(id)
   for (const issue of r.snapshot.issues.slice(0, 3)) toast(issue.message, 'info')
+  return true
 }
 
 export async function refreshWorkspaces(list: WorkspaceSummary[]): Promise<void> {

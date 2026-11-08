@@ -34,6 +34,11 @@ export class SettingsStore {
     return this.data
   }
 
+  /** Resolves when pending settings writes have finished. */
+  idle(): Promise<void> {
+    return this.writing
+  }
+
   async update(fn: (d: SettingsFile) => SettingsFile): Promise<SettingsFile> {
     const prev = this.data
     const next = fn(structuredClone(prev))

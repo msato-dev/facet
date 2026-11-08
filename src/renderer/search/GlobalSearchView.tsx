@@ -23,7 +23,7 @@ export function GlobalSearchView() {
   }, [q])
   const shown = hits.filter((h) => ws === 'all' || h.workspaceId === ws)
   const open = async (h: GlobalSearchHit) => {
-    if (h.workspaceId !== activeId) await switchWorkspace(h.workspaceId)
+    if (h.workspaceId !== activeId && !(await switchWorkspace(h.workspaceId))) return
     useApp.setState({ globalSearch: false, tab: 'Cards', rightOpen: true })
     selectNote(h.noteId)
     if (h.workspaceId !== activeId) toast(`Workspace「${h.workspaceName}」へ移動しました`)

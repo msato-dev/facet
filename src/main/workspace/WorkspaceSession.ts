@@ -61,6 +61,11 @@ export class WorkspaceSession {
     return s
   }
 
+  /** Resolves when every queued mutation (and its file writes) has finished. */
+  idle(): Promise<void> {
+    return this.queue.then(() => undefined)
+  }
+
   /** Serialize every mutation of this workspace. */
   private enqueue<T>(fn: () => Promise<T>): Promise<T> {
     const run = this.queue.then(fn, fn)

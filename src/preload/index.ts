@@ -34,6 +34,12 @@ const api: FacetApi = {
     ipcRenderer.on(CH.workspaceEvent, listener)
     return () => ipcRenderer.removeListener(CH.workspaceEvent, listener)
   },
+  onCloseRequest(cb) {
+    const listener = (_e: unknown, requestId: number) => cb(requestId)
+    ipcRenderer.on(CH.closeRequest, listener)
+    return () => ipcRenderer.removeListener(CH.closeRequest, listener)
+  },
+  closeReady: invoke(CH.closeReady) as FacetApi['closeReady'],
 }
 
 contextBridge.exposeInMainWorld('facet', api)

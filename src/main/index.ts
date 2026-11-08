@@ -41,8 +41,17 @@ interface TestHooks {
   browseResult: string | null
   saveResult: string | null
   openFileResult: string | null
+  /** Answer to the "unsaved changes" close prompt; null means discard (so test teardown never hangs). */
+  closeChoice: 'cancel' | 'discard' | null
+  closePrompts: number
 }
-const testHooks: TestHooks = { browseResult: null, saveResult: null, openFileResult: null }
+const testHooks: TestHooks = {
+  browseResult: null,
+  saveResult: null,
+  openFileResult: null,
+  closeChoice: null,
+  closePrompts: 0,
+}
 if (E2E) (globalThis as unknown as { __facetTest: TestHooks }).__facetTest = testHooks
 
 if (!E2E && !app.requestSingleInstanceLock()) app.quit()
@@ -184,6 +193,55 @@ function registerIpc(): void {
   handle(CH.setActiveWorkspace, z.tuple([zId]), async (id) => {
     await manager.settings.update((d) => ({ ...d, lastWorkspaceId: id }))
   })
+  handle(CH.closeReady, z.tuple([z.number().int().nonnegative(), z.boolean()]), (requestId, ok) => {
+    closeReplies.get(requestId)?.(ok)
+    closeReplies.delete(requestId)
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Close guard: never close while the Renderer still holds edits that are not on disk.
+
+const CLOSE_FLUSH_TIMEOUT_MS = 15_000
+const closeReplies = new Map<number, (ok: boolean) => void>()
+let nextCloseRequest = 1
+
+/** Ask the Renderer to flush its editors. Resolves true when nothing is left unsaved. */
+function requestRendererFlush(win: BrowserWindow): Promise<boolean> {
+  const wc = win.webContents
+  if (wc.isDestroyed() || wc.isCrashed()) return Promise.resolve(true) // nothing left to flush
+  const id = nextCloseRequest++
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      closeReplies.delete(id)
+      resolve(false) // unknown state: let the user decide
+    }, CLOSE_FLUSH_TIMEOUT_MS)
+    closeReplies.set(id, (ok) => {
+      clearTimeout(timer)
+      resolve(ok)
+    })
+    wc.send(CH.closeRequest, id)
+  })
+}
+
+async function confirmDiscardOnClose(win: BrowserWindow): Promise<boolean> {
+  if (E2E) {
+    testHooks.closePrompts++
+    return testHooks.closeChoice !== 'cancel'
+  }
+  const r = await dialog.showMessageBox(win, {
+    type: 'warning',
+    title: 'FACET',
+    message: '保存できていない変更があります',
+    detail:
+      '競合または保存エラーのため、一部の編集内容を Vault に保存できていません。\n' +
+      '「戻る」を選び、競合バナーで「最新を読み込む」か「自分の内容で上書き」を選んでから終了してください。',
+    buttons: ['戻る', '変更を破棄して終了'],
+    defaultId: 0,
+    cancelId: 0,
+    noLink: true,
+  })
+  return r.response === 1
 }
 
 function hardenSecurity(): void {
@@ -230,7 +288,29 @@ async function createWindow(): Promise<void> {
       : mainWindow.getBounds()
     void manager.settings.update((d) => ({ ...d, window: { bounds, maximized } }))
   }
-  mainWindow.on('close', persistBounds)
+  const win = mainWindow
+  let closeAllowed = false
+  let closeInProgress = false
+  win.on('close', (e) => {
+    if (closeAllowed) {
+      persistBounds()
+      return
+    }
+    e.preventDefault()
+    if (closeInProgress) return
+    closeInProgress = true
+    void (async () => {
+      try {
+        const ok = await requestRendererFlush(win)
+        await manager.idle()
+        if (!ok && !(await confirmDiscardOnClose(win))) return
+        closeAllowed = true
+        if (!win.isDestroyed()) win.close()
+      } finally {
+        closeInProgress = false
+      }
+    })()
+  })
   mainWindow.on('closed', () => (mainWindow = null))
   if (process.env.ELECTRON_RENDERER_URL) await mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
   else await mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'))

@@ -165,7 +165,11 @@ export class WorkspaceManager {
       }))
     } catch (e) {
       for (const [id, s] of opened)
-        results[id] = { ok: false, path: s.vaultPath, message: `設定を保存できません: ${(e as Error).message}` }
+        results[id] = {
+          ok: false,
+          path: s.vaultPath,
+          message: `設定を保存できません: ${(e as Error).message}`,
+        }
       return refuse()
     }
     for (const [id, s] of opened) {
@@ -224,7 +228,15 @@ export class WorkspaceManager {
     this.watchers.get(id)?.watchBib(s.bibAbsPath())
   }
 
+  /** Wait for every workspace's queued writes and for pending settings writes. */
+  async idle(): Promise<void> {
+    await Promise.all([...this.sessions.values()].map((s) => s.idle()))
+    await this.settings.idle()
+  }
+
   async dispose(): Promise<void> {
+    await this.idle()
     for (const id of [...this.sessions.keys()]) await this.closeSession(id)
+    await this.settings.idle()
   }
 }

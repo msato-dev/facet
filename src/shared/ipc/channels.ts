@@ -21,4 +21,7 @@ export const CH = {
   setPanes: 'facet:setPanes',
   setActiveWorkspace: 'facet:setActiveWorkspace',
   workspaceEvent: 'facet:workspaceEvent',
+  /** Main → Renderer: the window is about to close; flush and answer with closeReady. */
+  closeRequest: 'facet:closeRequest',
+  closeReady: 'facet:closeReady',
 } as const

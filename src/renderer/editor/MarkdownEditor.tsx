@@ -15,7 +15,16 @@ import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { markdown } from '@codemirror/lang-markdown'
 import { autocompletion, type CompletionContext, type CompletionResult } from '@codemirror/autocomplete'
 import { titleKey } from '../../shared/domain/titles'
-import { exec, registerFlusher, selectNote, toast, useApp } from '../store/store'
+import {
+  clearDraft,
+  exec,
+  getDraft,
+  registerFlusher,
+  selectNote,
+  setDraft,
+  toast,
+  useApp,
+} from '../store/store'
 import { noteFocused, registerView, rememberCursor } from './registry'
 
 const SAVE_DELAY = 500
@@ -132,40 +141,76 @@ export function MarkdownEditor({ noteId, autoFocus, minHeight = 200, testId }: P
   const host = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
   const note = useApp((s) => s.snapshot?.state.notes[noteId])
+  // The workspace this editor belongs to (drafts are kept per workspace and note).
+  const workspaceId = useRef(useApp.getState().activeId)
   const sync = useRef({
     baseRev: note?.rev ?? 0,
     dirty: false,
     lastSent: null as string | null,
     timer: 0 as unknown as ReturnType<typeof setTimeout>,
+    inflight: null as Promise<boolean> | null,
   })
   const [conflict, setConflict] = useState(false)
   const [status, setStatus] = useState<'saved' | 'pending' | 'saving'>('saved')
 
-  const save = async (force = false) => {
-    const view = viewRef.current
+  const keepDraft = (body: string) => {
+    if (workspaceId.current) setDraft(workspaceId.current, noteId, { body, baseRev: sync.current.baseRev })
+  }
+  const dropDraft = () => {
+    if (workspaceId.current) clearDraft(workspaceId.current, noteId)
+  }
+
+  /** Resolves true when this editor has nothing left unsaved, false on a conflict or error. */
+  const save = async (force = false): Promise<boolean> => {
     const s = sync.current
     clearTimeout(s.timer)
-    if (!view || !s.dirty) return
+    // Capture the view now: this also runs from the unmount cleanup, after which the ref is cleared.
+    const view = viewRef.current
+    while (s.inflight) await s.inflight // never race two saves with the same baseRev
+    if (!s.dirty) return true
+    if (!view) return false
     const body = view.state.doc.toString()
     const current = useApp.getState().snapshot?.state.notes[noteId]
-    if (!current) return
+    if (!current) {
+      keepDraft(body)
+      return false
+    }
     s.lastSent = body
     setStatus('saving')
-    const r = await exec(
-      { type: 'note.updateBody', id: noteId, body, baseRev: force ? current.rev : s.baseRev },
-      { quiet: true },
-    )
-    if (!r.ok) {
-      setStatus('pending')
-      if (r.code === 'conflict') setConflict(true)
-      else toast(r.message, 'error')
-      return
+    const run = (async () => {
+      const r = await exec(
+        { type: 'note.updateBody', id: noteId, body, baseRev: force ? current.rev : s.baseRev },
+        { quiet: true },
+      )
+      if (!r.ok) {
+        setStatus('pending')
+        if (r.code === 'conflict') setConflict(true)
+        else toast(r.message, 'error')
+        keepDraft(view.state.doc.toString())
+        return false
+      }
+      if (view.state.doc.toString() === body) {
+        s.dirty = false
+        setStatus('saved')
+        dropDraft()
+      }
+      setConflict(false)
+      return true
+    })()
+    s.inflight = run
+    try {
+      return await run
+    } finally {
+      s.inflight = null
     }
-    if (view.state.doc.toString() === body) {
-      s.dirty = false
-      setStatus('saved')
+  }
+  /** Save until nothing is pending (typing can continue while a save is in flight). */
+  const flush = async (): Promise<boolean> => {
+    for (let i = 0; i < 5; i++) {
+      if (!(await saveRef.current())) return false
+      if (!sync.current.dirty) return true
     }
-    setConflict(false)
+    return !sync.current.dirty
   }
   const saveRef = useRef(save)
   saveRef.current = save
@@ -173,10 +218,13 @@ export function MarkdownEditor({ noteId, autoFocus, minHeight = 200, testId }: P
   useEffect(() => {
     if (!host.current) return
     const initial = useApp.getState().snapshot?.state.notes[noteId]
+    workspaceId.current = useApp.getState().activeId
+    // Text that could not be saved earlier comes back instead of the stored body.
+    const draft = workspaceId.current ? getDraft(workspaceId.current, noteId) : undefined
     const view = new EditorView({
       parent: host.current,
       state: EditorState.create({
-        doc: initial?.body ?? '',
+        doc: draft?.body ?? initial?.body ?? '',
         extensions: [
           // Completion first so its Enter/arrow bindings take precedence over the default keymap.
           autocompletion({ override: [wikiCompletion(noteId)], icons: false }),
@@ -212,11 +260,24 @@ export function MarkdownEditor({ noteId, autoFocus, minHeight = 200, testId }: P
       }),
     })
     viewRef.current = view
-    sync.current = { baseRev: initial?.rev ?? 0, dirty: false, lastSent: null, timer: sync.current.timer }
+    sync.current = {
+      baseRev: draft?.baseRev ?? initial?.rev ?? 0,
+      dirty: !!draft,
+      lastSent: null,
+      timer: sync.current.timer,
+      inflight: null,
+    }
+    if (draft) {
+      setStatus('pending')
+      if (initial && initial.rev !== draft.baseRev) setConflict(true)
+      else sync.current.timer = setTimeout(() => void saveRef.current(), SAVE_DELAY)
+    }
     const unregister = registerView(noteId, view)
-    const unflush = registerFlusher(() => saveRef.current())
+    const unflush = registerFlusher(flush)
     if (autoFocus) view.focus()
     return () => {
+      // Keep unsaved text until the save below succeeds (it clears the draft) or fails.
+      if (sync.current.dirty) keepDraft(view.state.doc.toString())
       void saveRef.current()
       unflush()
       unregister()
@@ -236,6 +297,7 @@ export function MarkdownEditor({ noteId, autoFocus, minHeight = 200, testId }: P
       if (s.dirty) {
         s.dirty = false
         setStatus('saved')
+        dropDraft()
       }
       setConflict(false)
       return
@@ -259,6 +321,7 @@ export function MarkdownEditor({ noteId, autoFocus, minHeight = 200, testId }: P
     replaceDoc(view, latest.body)
     sync.current.dirty = false
     sync.current.baseRev = latest.rev
+    dropDraft()
     setConflict(false)
     setStatus('saved')
   }
