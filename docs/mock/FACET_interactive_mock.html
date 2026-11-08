@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>FACET — Obsidian-inspired Mock v1.3</title><style>
+:root{--bg:#f6f7f9;--panel:#fff;--line:#e5e8ee;--ink:#263247;--muted:#788598;--accent:#426b9c;--accent-bg:#eaf1fb;--green:#30846d;--shadow:0 5px 18px rgba(33,48,72,.06)}*{box-sizing:border-box}html,body{margin:0;height:100%;font:13px/1.5 Inter,"Segoe UI",Arial,"Noto Sans JP",sans-serif;color:var(--ink);background:var(--bg)}button,input,textarea,select{font:inherit}button{cursor:pointer}button:disabled{opacity:.4;cursor:not-allowed}button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent)}.app{height:100vh;display:flex;flex-direction:column;min-height:580px}.mast{height:58px;flex:none;display:flex;align-items:center;gap:12px;padding:0 20px;background:#fff;border-bottom:1px solid var(--line)}.brand{font-size:22px;font-weight:800;letter-spacing:.075em;color:#223f66}.brand small{font-size:9px;color:#9ba6b5;display:block;letter-spacing:.02em;line-height:1.1;font-weight:500}.workspace{border:1px solid var(--line);border-radius:8px;background:#f8f9fb;padding:8px 10px;min-width:205px;max-width:250px}.muted{color:var(--muted)}.grow{flex:1}.toolbar{display:flex;align-items:center;gap:5px}.tool,.navbutton{border:1px solid transparent;background:transparent;padding:7px 9px;border-radius:7px;color:#536276;white-space:nowrap}.tool:hover,.navbutton:hover{background:#f0f3f8}.tool.active,.navbutton.active{background:var(--accent-bg);color:var(--accent);border-color:#dbe6f5}.tabs{height:48px;flex:none;display:flex;align-items:end;gap:3px;padding:0 22px;background:#fff;border-bottom:1px solid var(--line)}.tab{padding:10px 17px;border:0;border-bottom:3px solid transparent;background:transparent;color:#657486;font-weight:600}.tab.active{border-color:var(--accent);color:var(--accent)}.main{min-height:0;flex:1;display:flex}.side{width:238px;min-width:238px;overflow:auto;background:#fff;border-right:1px solid var(--line);padding:16px 12px}.side h4{font-size:10px;color:#9aa5b4;letter-spacing:.13em;text-transform:uppercase;margin:14px 10px 8px}.sideitem{width:100%;display:flex;gap:8px;align-items:center;text-align:left;padding:9px 10px;border:0;border-radius:7px;color:#576678;background:transparent}.sideitem:hover{background:#f5f7fa}.sideitem.active{background:#eaf1fa;color:#375f91;font-weight:700}.sideitem .count{margin-left:auto;color:#a2adba;font-size:11px}.sideitem.level1{padding-left:22px;font-size:12px}.sideitem.level2{padding-left:35px;font-size:12px}.sidefoot{margin-top:20px;border-top:1px solid var(--line);padding:12px 10px;font-size:11px;color:var(--muted)}.canvascontrols{height:47px;display:flex;align-items:center;gap:8px;padding:0 16px;background:#fff;border-bottom:1px solid var(--line);flex:none}.simple-input,.simple-select{border:1px solid var(--line);border-radius:7px;background:#fff;padding:7px 9px;color:var(--ink)}.simple-input{width:100%}.simple-select{max-width:190px}.light-btn{border:1px solid var(--line);background:white;border-radius:7px;color:#607084;padding:7px 10px;white-space:nowrap}.light-btn:hover{background:#f6f8fb}.primary{background:var(--accent);color:white;border:1px solid var(--accent);border-radius:7px;padding:8px 12px;font-weight:600}.primary:hover{background:#345a88}.content{flex:1;min-width:0;display:flex;flex-direction:column;position:relative}.inspector{width:300px;min-width:300px;background:#fff;border-left:1px solid var(--line);padding:16px;overflow:auto}.inspector h3{margin:0 0 4px;font-size:14px}.inspector label{display:block;font-size:11px;color:#8694a5;margin:17px 0 6px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}.inspector textarea{height:220px;width:100%;resize:vertical;padding:10px;border:1px solid var(--line);border-radius:7px;line-height:1.7;color:#334257}.helper{color:#91a0af;font-size:11px}.inspector .links{display:flex;flex-direction:column;gap:8px}.link{border:0;background:#eff5fc;border-radius:6px;padding:8px;color:#3d709f;text-align:left}.stage{flex:1;overflow:hidden;position:relative;background-color:#f9fbfd;background-image:radial-gradient(#cdd5df 1px,transparent 1px);background-size:24px 24px;cursor:grab}.stage.panning{cursor:grabbing}.world{position:absolute;left:0;top:0;transform-origin:0 0;width:2400px;height:1700px}.para{position:absolute;width:300px;min-height:92px;border:1px solid #d8e1e9;border-radius:12px;background:rgba(255,255,255,.98);box-shadow:0 5px 15px rgba(37,53,76,.09);cursor:default;user-select:none}.para.selected{outline:2px solid #4e87ba;outline-offset:2px}.para .crumb{font-size:10px;color:#8192a5;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.para-head{padding:13px 13px 10px;cursor:move;border-bottom:1px solid #eef1f4}.para-head strong{font-size:13px}.para-head .expand{float:right;border:0;background:none;color:#8495a7;cursor:pointer}.notes{padding:9px 12px 12px;display:flex;flex-direction:column;gap:6px}.notechip{background:#f4f7fb;border:1px solid #e6ebf2;border-radius:7px;padding:8px 9px;cursor:pointer}.notechip:hover{background:#edf3fc}.notechip b{display:block;font-size:11px}.notechip span{display:block;color:#7d8ca0;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.para-footer{padding:0 13px 11px;color:#9aa8b6;font-size:10px}.tree-node{position:absolute;border:1px solid #dbe3ed;border-radius:9px;background:#eaf1fa;padding:11px 15px;text-align:center;box-shadow:var(--shadow);font-weight:600;color:#3a6087}.connector{position:absolute;background:#b9cadd}.stagebottom{position:absolute;bottom:15px;left:16px;right:15px;display:flex;gap:5px;align-items:center;pointer-events:none}.stagebottom>*{pointer-events:auto}.zoom-pill{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);padding:4px 6px;border-radius:9px;box-shadow:var(--shadow)}.zoom-pill button{border:0;background:none;color:#5a728d;font-size:18px;width:25px}.status{background:#fff;border:1px solid var(--line);border-radius:8px;padding:7px 10px;color:#8b98a8;font-size:11px}.listview{padding:25px 30px;overflow:auto;flex:1}.heading{font-size:23px;letter-spacing:-.02em;margin:0 0 6px;font-weight:700}.subheading{color:#8995a5;margin:0 0 20px}.sectionrow{margin:7px 0;border:1px solid var(--line);background:#fff;border-radius:9px;box-shadow:var(--shadow)}.sectionrow .sectiontitle{padding:12px 14px;font-weight:700}.outline-child{display:flex;align-items:center;gap:8px;padding:8px 12px 8px 25px;border-top:1px solid #eef0f3;cursor:grab}.outline-child:hover{background:#f8fbfe}.outline-child.dragover{border-top:3px solid #5e91bc}.outline-child .handle{color:#adb8c4}.outline-child small{color:#91a0af;margin-left:auto}.outnote{color:#778698;font-size:11px;margin-left:14px}.cardgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:13px}.memocard{background:#fff;border:1px solid var(--line);border-radius:10px;padding:15px;box-shadow:var(--shadow);cursor:pointer;min-height:116px}.memocard:hover{border-color:#9db8d9}.memocard h4{margin:0 0 8px;font-size:14px}.memocard p{color:#768599;font-size:12px;margin:0 0 12px}.tag{display:inline-block;font-size:10px;color:#5c7090;background:#edf2fa;border-radius:5px;padding:3px 6px;margin:0 4px 3px 0}.manuscript{max-width:780px;margin:auto;background:#fff;border:1px solid var(--line);box-shadow:var(--shadow);padding:45px 58px;line-height:1.9;min-height:650px}.manuscript h2{font-size:19px;margin-top:30px}.manuscript h3{font-size:15px}.manuscript p{font-size:13px;color:#37465a}.table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line)}.table th{text-align:left;background:#f1f4f8;color:#738196;font-size:11px}.table th,.table td{padding:12px;border-bottom:1px solid var(--line)}.table td{font-size:12px}.modalback{position:fixed;inset:0;background:rgba(18,30,47,.32);display:flex;align-items:center;justify-content:center;z-index:10}.modal{width:min(560px,92vw);background:white;border-radius:13px;box-shadow:0 24px 70px rgba(15,30,50,.22);padding:23px}.modal h2{margin:0 0 15px;font-size:19px}.modal .choices{max-height:275px;overflow:auto}.refchoice{width:100%;display:block;background:#fff;border:1px solid var(--line);border-radius:8px;padding:11px;margin:7px 0;text-align:left}.refchoice:hover{background:#f3f7fc}.refchoice b{display:block}.refchoice small{color:#8491a0}.ctx{position:fixed;z-index:20;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 12px 35px rgba(23,39,63,.18);padding:5px;min-width:185px}.ctx button{display:block;width:100%;text-align:left;background:none;border:0;border-radius:5px;padding:9px 10px;color:#46566c}.ctx button:hover{background:var(--accent-bg)}.toast{position:fixed;bottom:25px;left:50%;transform:translateX(-50%);background:#273c57;color:white;padding:10px 18px;border-radius:8px;z-index:30;box-shadow:var(--shadow)}.pgroup-title{font-size:16px;margin:22px 0 12px}.empty{padding:50px 20px;text-align:center;color:#91a0ad}.searchline{display:flex;gap:10px;margin:15px 0 25px}.viewbar{display:flex;gap:8px;align-items:center;margin-bottom:20px;flex-wrap:wrap}@media(max-width:1000px){.inspector{width:240px;min-width:240px}.side{width:195px;min-width:195px}.tool span{display:none}}@media(max-width:750px){.inspector{display:none}.side{width:150px;min-width:150px}.mast{padding:0 9px}.workspace{min-width:135px}.brand{font-size:17px}.tool{padding:5px}.tab{padding:10px 8px;font-size:11px}}
+/* FACET v0.3: dark-only interface, square cards, inline outline editor */
+:root{color-scheme:dark;--bg:#0d111a;--panel:#171e2b;--line:#303b4d;--ink:#e7eef8;--muted:#a5b2c4;--accent:#83b6ff;--accent-bg:#203b5b;--green:#65bca9;--shadow:0 8px 24px rgba(0,0,0,.28)}
+html,body{background:var(--bg);color:var(--ink)}
+.mast,.tabs,.side,.canvascontrols,.inspector,.sectionrow,.memocard,.manuscript,.modal,.ctx,.status,.zoom-pill,.light-btn,.simple-input,.simple-select,.inspector textarea,.refchoice{background:var(--panel)!important;color:var(--ink)!important;border-color:var(--line)!important}
+.brand{color:#e6f0ff}.brand small,.helper,.subheading,.muted{color:var(--muted)}
+.workspace{background:#233044!important;color:#e7eef8!important;border:1px solid #607ca0!important;font-weight:650;max-width:300px;min-width:230px}
+.tool,.navbutton,.tab,.sideitem,.light-btn,.ctx button{color:#b7c6d9!important}
+.tool:hover,.navbutton:hover,.sideitem:hover,.light-btn:hover,.ctx button:hover,.outline-child:hover{background:#26344a!important}
+.tool.active,.navbutton.active,.sideitem.active,.tab.active{color:#c4e0ff!important;background:#223b59!important}
+.tab.active{border-bottom-color:#84b9ff}.sidefoot{color:#8fa0b8}
+.stage{background-color:#101722;background-image:radial-gradient(#344457 1px,transparent 1px)}
+.para{background:#1c2636;border-color:#44536b;box-shadow:0 7px 22px rgba(0,0,0,.27)}
+.para-head{border-bottom-color:#374357}.para .crumb,.para-footer{color:#a8bdd5}
+.notechip{background:#253246;border-color:#3a4b65;color:#e8f0ff}.notechip:hover{background:#314762}.notechip span{color:#bac9dc}
+.notechip span{display:-webkit-box!important;-webkit-line-clamp:4;-webkit-box-orient:vertical;white-space:normal!important;overflow:hidden;line-height:1.55;max-height:6.2em;font-size:11px;margin-top:5px}
+.notechip{min-height:100px}.para{width:328px}.unassigned-note p{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;line-height:1.5;max-height:6em}
+.tree-node{background:#24364e;border-color:#506b8d;color:#d3e7ff}.connector{background:#6482a2}
+.cardgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px}
+.memocard{aspect-ratio:1/1;min-height:0;overflow:hidden;display:flex;flex-direction:column;border-radius:10px}
+.memocard h4{color:#eaf2fe;overflow-wrap:anywhere}.memocard p{color:#b4c3d8;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;flex:1}
+.tag{color:#bddbff;background:#2b425d}.link{background:#273f59;color:#bfdcff}
+.manuscript p{color:#e1e8f4}.table{background:var(--panel)}.table th{background:#202d40;color:#b7c9df}.table td{color:var(--ink)}
+.sectionrow .sectiontitle{background:#202d40;color:#e0edfc}.outline-child{border-top-color:#364254;color:#d6e3f4}.outline-child .handle{color:#8fb0ce}.outnote{color:#9aacbf}
+.inspector{width:345px;min-width:345px}.inspector textarea{color:#eaf0f8!important}
+.inspector label{color:#b5c8dd}.refchoice:hover{background:#2b3a4e!important}
+.unassigned-note{position:absolute;width:230px;min-height:96px;background:#2f3042;border:1px dashed #d0ae75;border-radius:10px;padding:12px 14px;cursor:grab;color:#f6ebd4;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.unassigned-note:hover{border-color:#f0c788}.unassigned-note strong{font-size:13px}.unassigned-note .crumb{font-size:10px;color:#e4be88}.unassigned-note p{font-size:11px;color:#d9d1c8;margin:9px 0 0}
+.insptabs{display:flex;gap:5px;margin-bottom:14px}.insptabs button{flex:1;background:#243149;color:#adc8e7;border:1px solid #394b64;padding:8px;border-radius:7px}.insptabs button.active{background:#355679;color:#fff}
+.mini-section{border:1px solid #35445a;border-radius:7px;margin:9px 0;overflow:hidden}.mini-sec-title{padding:9px 10px;background:#253449;font-weight:700;font-size:12px}
+.mini-sub-title{padding:7px 10px 5px 17px;color:#b9cfe9;font-weight:600;font-size:11px}
+.mini-para{border-top:1px solid #344258;padding:7px 8px 7px 22px;display:flex;gap:6px;align-items:center;cursor:grab;font-size:12px}
+.mini-para:hover{background:#2b415c}.mini-para.dragover{border-top:3px solid #9fc9fb}.mini-para .handle{color:#9aabc0}.mini-para .mini-count{margin-left:auto;color:#90a3b9;font-size:10px}
+.outline-control{display:flex;gap:6px;margin:10px 0}.outline-control select{min-width:0;flex:1}.outline-control button{white-space:nowrap}
+
+.side{width:282px;min-width:282px;padding:14px 10px}.side-title{display:flex;align-items:baseline;justify-content:space-between;padding:5px 9px 12px;gap:7px}.side-title b{font-size:11px;letter-spacing:.11em}.side-title .helper{font-size:9px}
+.side-para{display:flex;align-items:center;gap:7px;padding:6px 8px 6px 24px;border:1px solid transparent;border-radius:6px;cursor:grab;color:#baccdf;font-size:11px}.side-para:hover{background:#27354a}.side-para.dragover{border-top:2px solid #9fc9fb}.side-para-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}.side-para .handle{color:#7f9bb9}.side-para .count{font-size:10px;color:#8da7c2}.side-para-nested .side-para{padding-left:36px}.sideitem.level1{padding-left:22px}.sideitem.drop-section{outline:2px dashed var(--accent)}.side-section-tools{padding:15px 9px}.side-section-tools p{line-height:1.55}
+@media(max-width:1080px){.inspector{width:275px;min-width:275px}}
+@media(max-width:750px){.inspector{display:none}}
+
+
+/* FACET v0.4 — sidebar navigation and full outline editing */
+.outline-full{max-width:1100px}.outline-section-block{border:1px solid var(--line);border-radius:10px;margin:14px 0;overflow:hidden;background:var(--panel)}
+.outline-section-content{padding:5px 13px 12px 27px}.outline-subsection-block{margin:6px 0 5px 0;border-left:2px solid #3b526f;padding-left:12px}.outline-paragraph-block{margin:5px 0 10px 0}
+.outline-node{display:flex;align-items:center;gap:10px;min-height:37px;padding:8px 10px;border-radius:6px;border:1px solid transparent;cursor:grab;user-select:none;color:var(--ink)}
+.outline-node:hover{background:#29374a}.outline-node:active{cursor:grabbing}.outline-section{background:#26354b;min-height:45px}.outline-subsection{background:#243347}.outline-paragraph{background:#1b2d3d}.outline-note-list{margin-left:42px;border-left:1px solid #35455d;padding-left:14px}.outline-note{font-size:12px;min-height:32px;color:#b7cbe2}
+.outline-label{flex:1;min-width:0}.outline-meta{color:#8aa3bd;font-size:11px;white-space:nowrap}.drag-handle{color:#6d91b9;font-weight:700;font-size:16px}.outline-icon{color:#86b6e5;font-size:14px;min-width:14px;text-align:center}.outline-dragging{opacity:.4}.outline-node.drop-before{border-top:3px solid #77b7ff!important}.outline-node.drop-after{border-bottom:3px solid #77b7ff!important}.outline-node.drop-inside{background:#27496a!important;border:1px dashed #94cbff!important}.outline-unassigned{border:1px dashed #526681;border-radius:10px;padding:12px;margin-top:20px}.outline-unassigned-title{font-size:13px;font-weight:700;padding:0 8px 6px}.side{width:238px;min-width:238px}.side-section-tools{padding:10px}.side-title{padding:5px 9px 14px}
+
+/* FACET v0.5 — disciplined desktop workbench visual system */
+:root {
+  color-scheme:dark;
+  --bg:#0d1117;
+  --panel:#141a23;
+  --panel-hi:#1b2330;
+  --panel-low:#111720;
+  --line:#293340;
+  --ink:#e2e9f1;
+  --muted:#90a0b4;
+  --accent:#75b8d4;
+  --accent-bg:#1c3747;
+  --green:#73bda5;
+  --shadow:0 10px 32px rgba(0,0,0,.2);
+}
+html,body {font-family:Inter,"Segoe UI Variable Text","Segoe UI","Noto Sans JP",sans-serif!important;font-size:12.5px!important;letter-spacing:.004em;background:var(--bg)!important;color:var(--ink)!important}
+* {scrollbar-width:thin;scrollbar-color:#3b485b transparent}
+button, select, input, textarea {font-family:inherit}
+button {transition: background .12s,border-color .12s,color .12s}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible {outline:2px solid var(--accent);outline-offset:1px}
+.app{min-height:600px}
+.mast {height:62px;background:#111720!important;padding:0 16px;gap:14px;border-bottom:1px solid #2b3442!important}
+.brand {display:flex;align-items:center;gap:10px;color:#eef4f8!important;letter-spacing:.115em;font-size:18px;font-weight:770;min-width:166px;line-height:1}
+.brandmark {display:flex;justify-content:center;align-items:center;position:relative;width:35px;height:35px;border:1px solid #6c9ab0;border-radius:9px;background:linear-gradient(135deg,#294659,#1b2b38);font-size:19px;font-weight:780;color:#bfe5f1;letter-spacing:0;box-shadow:inset 0 1px rgba(255,255,255,.13)}
+.brandmark-dot {position:absolute;width:5px;height:5px;background:#88cfb6;border-radius:50%;bottom:5px;right:5px}
+.brandcopy {display:flex;flex-direction:column;gap:4px}
+.brand small {font-size:8px;color:#7e94a9!important;font-weight:750;letter-spacing:.15em}
+.workspace {background:#1c2734!important;border:1px solid #39485b!important;min-width:195px;max-width:235px;border-radius:6px!important;color:#dfebf3!important;font-size:12px;font-weight:600!important;padding:9px 10px;outline-offset:2px}
+.toolbar {gap:2px;align-self:stretch;align-items:center;border-left:1px solid #2c3643;padding-left:12px}
+.tool {display:inline-flex;align-items:center;justify-content:center;gap:6px;color:#b6c3d1!important;border-radius:5px!important;border:1px solid transparent!important;padding:7px 8px;min-height:33px;font-size:12px}
+.tool svg {width:15px;height:15px}
+.tool:hover,.navbutton:hover {background:#263341!important;color:#e7eff8!important}
+.tool.active {background:#254252!important;color:#c5eaf6!important;border-color:#355c6f!important}
+.light-btn {border-radius:5px!important;background:#1b2633!important;border:1px solid #344252!important;color:#c7d5e3!important;padding:7px 11px;font-size:11.5px;font-weight:550}
+.light-btn:hover {background:#28394a!important;border-color:#52677c!important;color:#f2f7fc!important}
+.primary {background:#397b96!important;border-color:#559bb6!important;border-radius:5px!important;color:#f8fcff;font-size:12px;font-weight:650}
+.primary:hover {background:#468da7!important}
+.tabs {height:42px;padding:0 14px;align-items:stretch;gap:3px;background:#151c26!important;border-bottom:1px solid #303b49!important}
+.tab {padding:0 18px;color:#8b9db1!important;font-weight:580;font-size:12px;letter-spacing:.01em;border-bottom:2px solid transparent;position:relative}
+.tab:hover {background:#1c2632!important;color:#d4e1ed!important}
+.tab.active {background:#1d2a36!important;border-bottom-color:#80c0d9!important;color:#d9f2fb!important}
+.main {background:#10151d}
+.side {width:232px!important;min-width:232px!important;background:#141b25!important;border-color:#2a3543!important;padding:18px 10px!important}
+.side-title {padding:3px 11px 12px}
+.side-title b,.side h4 {font-size:10px!important;letter-spacing:.14em!important;font-weight:750;color:#8194a8!important}
+.sideitem {border-radius:5px!important;padding:8px 11px!important;min-height:33px;color:#b1c1d2!important;font-weight:480;font-size:12px}
+.sideitem.level1 {padding-left:24px!important}
+.sideitem.level2 {padding-left:34px!important}
+.sideitem.active {background:#213849!important;color:#bde7f5!important;font-weight:680!important;box-shadow:inset 2px 0 #7abbd6}
+.sideitem:hover {background:#222e3d!important}
+.sideitem .count {background:#25313d;border-radius:4px;padding:1px 5px;color:#8da6ba!important;font-variant-numeric:tabular-nums}
+.sidefoot {margin-top:24px;padding:13px 10px;line-height:1.8;border-color:#2a3543}
+.content {background:#10151d}
+.canvascontrols {height:49px!important;background:#171f2a!important;border-bottom:1px solid #2b3746!important;padding:0 17px;gap:9px}
+.canvascontrols strong {font-size:12px;letter-spacing:.01em;color:#e1edf4}
+.canvascontrols .helper {font-size:10px;color:#74879d}
+.canvascontrols .light-btn {padding:6px 9px}
+.stage {background-color:#101720!important;background-image:radial-gradient(#314052 0.78px,transparent 0.8px)!important;background-size:23px 23px!important}
+.stagebottom {bottom:14px;left:16px;right:16px}
+.zoom-pill,.status {background:#1b2531!important;border:1px solid #3a4859!important;color:#9fb1c4!important;border-radius:6px!important;box-shadow:0 4px 15px rgba(0,0,0,.18);font-variant-numeric:tabular-nums}
+.zoom-pill button {color:#bdd5e5!important}
+.para {width:328px;background:#1b2532!important;border:1px solid #3a4b5d!important;border-radius:8px!important;box-shadow:0 7px 22px rgba(0,0,0,.27)!important;overflow:hidden}
+.para.selected {outline:2px solid #83c2d8!important;outline-offset:1px}
+.para-head {background:#202d3b;padding:11px 13px 10px;border-bottom:1px solid #354658!important}
+.para-head strong {font-size:12.5px;letter-spacing:.005em;color:#e5f0f8}
+.para .crumb {color:#86aec5!important;font-size:10px;letter-spacing:.015em}
+.para-head .expand {color:#a9c2d4!important}
+.notes {padding:9px 10px 10px;gap:7px}
+.notechip {background:#242f3d!important;border:1px solid #364658!important;border-radius:5px!important;padding:10px 11px;min-height:94px!important;position:relative}
+.notechip:hover {background:#2d3e4e!important;border-color:#547187!important}
+.notechip b {font-size:11.5px;color:#e0e9f3;font-weight:650}
+.notechip span {font-size:11px;color:#a6b9c9!important;line-height:1.5;max-height:6em}
+.para-footer {padding:0 12px 10px;color:#8297a9!important;font-size:10px}
+.unassigned-note {border:1px dashed #897350!important;background:#29271f!important;color:#f2e8d6!important;border-radius:7px!important;box-shadow:0 8px 20px rgba(0,0,0,.2)}
+.unassigned-note .crumb {color:#cbb07c!important}
+.tree-node {border-radius:6px!important;background:#223547!important;border:1px solid #4e7188!important;color:#cde9f6!important;font-size:12px;box-shadow:var(--shadow)}
+.connector {background:#47687f!important}
+.inspector {width:325px!important;min-width:325px!important;background:#151c26!important;padding:22px 19px;border-left:1px solid #2d3947!important}
+.inspector h3 {font-size:14px;letter-spacing:-.01em;color:#eaf3fa}
+.inspector label {font-size:10px;margin:19px 0 7px;font-weight:750;color:#8ca5b7!important;letter-spacing:.09em}
+.inspector .helper {line-height:1.6;color:#8697a9!important}
+.simple-input,.simple-select,.inspector textarea {background:#101822!important;border:1px solid #354353!important;color:#deebf4!important;border-radius:5px!important;font-size:12px;padding:9px 10px}
+.simple-input::placeholder,.inspector textarea::placeholder {color:#718398}
+.inspector textarea {line-height:1.65;min-height:225px}
+.link {background:#1e3345!important;border:1px solid #314e62!important;border-radius:5px!important;color:#a9d6eb!important}
+.listview {padding:31px 39px;scrollbar-gutter:stable}
+.heading {font-size:23px;letter-spacing:-.04em;color:#f2f6fa;font-weight:730;margin:0 0 5px}
+.subheading {font-size:12px;color:#8da1b2!important;margin-bottom:23px;max-width:790px;line-height:1.6}
+.viewbar {gap:9px;margin-bottom:20px}
+.searchline {gap:10px;margin:17px 0 26px}
+.sectionrow,.outline-section-block {background:#171f2a!important;border:1px solid #313e4c!important;border-radius:7px!important;box-shadow:none!important}
+.outline-full {max-width:1200px}
+.outline-section-block {margin:13px 0;overflow:visible}
+.outline-section {min-height:45px!important;background:#253343!important}
+.outline-subsection {background:#202d3b!important}
+.outline-paragraph {background:#192833!important}
+.outline-node {border-radius:5px!important;min-height:38px;padding:9px 12px;gap:11px;font-size:12px}
+.outline-node:hover {background:#2a3a4b!important}
+.outline-label {font-weight:550}
+.outline-meta {font-size:10px;color:#839aab!important}
+.outline-icon {color:#86bdcf!important}
+.drag-handle {color:#66859b!important}
+.outline-note {color:#c7d5e2!important;font-size:11.5px}
+.outline-note-list {border-left-color:#334657!important}
+.outline-subsection-block {border-left-color:#456276!important}
+.outline-unassigned {border-color:#5a5c50!important;background:#201f1c}
+.cardgrid {grid-template-columns:repeat(auto-fill,minmax(182px,1fr));gap:14px}
+.memocard {background:#1a2430!important;border:1px solid #344353!important;border-radius:7px!important;box-shadow:none!important;padding:16px;aspect-ratio:1 / 1}
+.memocard:hover {background:#202e3c!important;border-color:#729fb5!important;transform:translateY(-1px)}
+.memocard h4 {font-weight:680;font-size:12.5px;color:#eaf3fa!important;line-height:1.5}
+.memocard p {font-size:11.5px;color:#a2b4c4!important;line-height:1.65}
+.tag {border-radius:4px!important;background:#273d4b!important;color:#b4d7e8!important;font-size:10px;padding:3px 6px}
+.pgroup-title {font-size:13px;font-weight:690;color:#d9e6ef;margin:28px 0 12px;border-bottom:1px solid #2b3745;padding-bottom:9px}
+.manuscript {background:#1c2530!important;border:1px solid #374553!important;border-radius:5px;box-shadow:0 15px 35px rgba(0,0,0,.18)!important;max-width:780px;padding:50px 63px}
+.manuscript p {color:#d4deea!important;line-height:2;font-size:13px}
+.manuscript h2,.manuscript h3 {color:#f1f5f9}
+.table {border:1px solid #344353!important;border-radius:6px;overflow:hidden;background:#19232f!important}
+.table th {background:#263440!important;color:#92a9bb!important;font-size:10px;letter-spacing:.06em;text-transform:uppercase}
+.table td {font-size:12px;color:#d5e1ec!important}
+.table tr:hover td {background:#202e3b}
+.table th,.table td {padding:13px 14px;border-color:#303d4b}
+.modal {background:#1a2430!important;border:1px solid #3c4b5a;border-radius:9px;box-shadow:0 28px 90px rgba(0,0,0,.5)}
+.modalback {background:rgba(4,9,16,.74)}
+.refchoice {background:#1b2835!important;border-radius:5px!important}
+.ctx {background:#1b2530!important;border:1px solid #3a4a5c!important;border-radius:6px!important;box-shadow:0 15px 50px rgba(0,0,0,.4)}
+.ctx button {color:#d1dfea!important}
+.ctx button:hover {background:#294354!important}
+.toast {background:#203a4a;color:#e7f5ff;border:1px solid #456c7d;border-radius:5px}
+.app-statusbar {height:26px;flex:none;background:#111a24;border-top:1px solid #2d3c4a;display:flex;align-items:center;gap:9px;padding:0 15px;color:#7f96a9;font-size:9px;letter-spacing:.085em;font-weight:650}
+.status-online {width:6px;height:6px;border-radius:50%;background:#78bdab;box-shadow:0 0 0 3px rgba(120,189,171,.1)}
+.status-divider {color:#4f6070}
+@media(max-width:1160px){.toolbar .tool span{display:none}.inspector{width:285px!important;min-width:285px!important}.side{width:209px!important;min-width:209px!important}}
+@media(max-width:900px){.inspector{width:250px!important;min-width:250px!important}.workspace{min-width:155px}.brand{min-width:140px}}
+@media(max-width:760px){.inspector{display:none}.side{width:170px!important;min-width:170px!important}.mast{padding:0 9px}.brand{min-width:115px}.brand small{display:none}.workspace{min-width:130px}.toolbar{padding-left:7px}.tabs{padding:0 7px}.tab{padding:0 10px}.listview{padding:22px 20px}}
+
+
+/* FACET v0.6 */
+.brand.simple-brand{font-size:20px;font-weight:700;letter-spacing:.08em;color:#e9eef5}.brandmark,.brandcopy small{display:none!important}.inspector-tabs,.side-pane-tabs{display:flex;gap:6px;margin-bottom:14px;position:sticky;top:0;background:var(--panel);padding-bottom:10px;z-index:2}.ins-tab,.side-tab{flex:1;border:1px solid var(--line);background:var(--panel-low);color:var(--muted);padding:8px 10px;border-radius:8px}.ins-tab.active,.side-tab.active{background:var(--accent-bg);border-color:#34566e;color:#dff6ff}.ins-ref-list,.side-mini-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}.side-refitem{display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--panel-low);color:var(--ink);border-radius:8px;padding:9px}.side-refitem span{display:block;color:var(--muted);font-size:11px;margin-top:4px}.side-notearea{width:100%;min-height:220px;resize:vertical;padding:10px;border:1px solid var(--line);border-radius:8px;background:#0f141d;color:var(--ink);margin-top:8px;line-height:1.65}.side-mini{padding:4px 2px}.outline-sticky{position:sticky;top:-25px;z-index:4;background:linear-gradient(180deg,var(--bg) 85%,rgba(13,17,23,0));padding-top:6px;padding-bottom:8px}.outline-section-content{padding:5px 10px 10px 14px}.outline-subsection-block{margin:4px 0 4px 0;border-left:1px solid #324254;padding-left:9px}.outline-paragraph-block{margin:4px 0 8px}.outline-note-list{margin-left:24px;border-left:1px solid #314152;padding-left:9px}.outline-node{gap:8px;padding:7px 9px}.collapse-toggle{border:1px solid transparent;background:transparent;color:#8fb9e7;border-radius:6px;padding:2px 5px;cursor:pointer}.collapse-toggle:hover{background:#1f3144}.modal-wide{width:min(980px,94vw);max-height:90vh;overflow:auto}.side-manuscript{padding:22px 26px;max-width:none;min-height:auto}.side{overflow:auto}.sideitem.level1{padding-left:19px}.sideitem{padding:8px 9px}.outline-node .outline-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.inline-note-editor{padding:10px 13px 12px 33px;background:#131f2b;border:1px solid #38536b;border-radius:8px;margin:4px 0 12px 2px;display:flex;flex-direction:column;gap:9px}
+.inline-note-editor .inline-title{font-weight:600}
+.inline-body{min-height:100px;background:#0c141e;border:1px solid #34465b;color:var(--ink);padding:12px;border-radius:6px;resize:vertical;width:100%;line-height:1.65}
+.inline-actions{display:flex;gap:7px}
+
+/* FACET v0.8: unified navigation and contextual canvas toolbar */
+.nav-shell{display:flex;align-items:center;height:66px;flex:none;background:#111720;border-bottom:1px solid var(--line);padding:0 18px;gap:20px;min-width:0}
+.nav-identity{display:flex;align-items:center;gap:16px;flex:none;min-width:0}
+.brand.simple-brand{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:0;line-height:1.2;white-space:nowrap;font-size:20px;color:#eaf4fb!important;letter-spacing:.06em}
+.brand.simple-brand small{display:block!important;font-size:9px;font-weight:500;color:#86a0b6;letter-spacing:.005em;line-height:1.3;max-width:226px}
+.nav-shell .workspace{max-width:232px;min-width:168px;font-size:12px}
+.nav-shell .tabs{display:flex;align-items:stretch;gap:2px;height:100%;padding:0 0 0 8px;border:0!important;background:transparent!important;flex:none}
+.nav-shell .tab{height:100%;padding:0 17px;display:flex;align-items:center}
+.nav-search{margin-left:auto;display:flex;align-items:center;min-width:0}
+.global-search{padding:8px 12px!important;color:#aec0d0!important;background:#1c2530!important;min-width:176px;text-align:left;border-color:#33404c!important}
+.side{width:230px!important;min-width:230px!important;padding:16px 10px;overflow:auto}
+.side-heading{font-size:10px;letter-spacing:.12em;font-weight:750;color:#8da2b7;margin:0 11px 12px}
+.sidefoot{margin-top:22px}
+.canvas-actionbar{height:50px;flex:none;display:flex;align-items:center;gap:5px;background:#151e29;border-bottom:1px solid #303d4a;padding:5px 19px}
+.canvas-action-label{font-size:9px;font-weight:750;letter-spacing:.1em;color:#7891aa;margin-right:10px}
+.canvas-action{padding:7px 9px!important}
+.notechip span{white-space:normal!important;display:-webkit-box!important;-webkit-line-clamp:5;-webkit-box-orient:vertical;line-clamp:5;overflow:hidden!important;text-overflow:ellipsis;line-height:1.45;max-height:7.25em;font-size:11px!important;color:#9bb0c4!important}
+.para .notes{gap:9px!important}
+.unassigned-note p{display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;line-clamp:5;white-space:normal;overflow:hidden;max-height:7.25em;line-height:1.45}
+.outline-workspace{display:flex;height:100%;min-height:0;min-width:0}
+.outline-primary{flex:1;min-width:0;min-height:0;overflow:auto;padding:22px 24px 32px}
+.outline-workspace.split-active .outline-primary{flex:0 0 51%;padding:22px 14px 32px 18px}
+.outline-header .heading{margin-bottom:5px}
+.outline-header .subheading{margin-bottom:12px;line-height:1.45}
+.outline-sticky{top:-22px!important;flex-wrap:wrap;gap:6px;margin:0 0 14px;min-height:44px}
+.outline-sticky .light-btn{font-size:11px;padding:7px 9px}
+.outline-sticky .grow{min-width:0}
+.outline-workspace.split-active .outline-sticky .grow{display:none}
+.outline-workspace.split-active .outline-sticky{justify-content:flex-start}
+.outline-section-block{margin:9px 0!important}
+.outline-section-content{padding:4px 6px 7px 12px!important}
+.outline-subsection-block{padding-left:8px!important;margin:4px 0!important}
+.outline-note-list{margin-left:18px!important;padding-left:8px!important}
+.manuscript-split{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;border-left:1px solid #354352;background:#101722}
+.manuscript-split-header{height:51px;flex:none;display:flex;gap:5px;align-items:center;padding:7px 12px;border-bottom:1px solid #354352}
+.manuscript-split-header strong{font-size:12px;color:#e0e9f2}
+.manuscript-split-header .light-btn{padding:6px 8px;font-size:11px}
+.manuscript-scroll{flex:1;min-height:0;overflow:auto;padding:16px}
+.manuscript-inline{max-width:none;min-height:500px;padding:23px 26px!important;line-height:1.85}
+.manuscript-inline h2{font-size:17px}.manuscript-inline h3{font-size:14px}.manuscript-inline p{font-size:12px}
+.active-action{background:var(--accent-bg)!important;border-color:#4b839d!important}
+@media (max-width:1450px){.brand.simple-brand small{font-size:8px}.nav-shell{gap:11px;padding:0 11px}.nav-shell .workspace{max-width:180px;min-width:150px}.nav-shell .tab{padding:0 12px}.global-search{min-width:140px}.inspector{width:285px!important;min-width:285px!important}.side{width:205px!important;min-width:205px!important}}
+@media(max-width:1050px){.brand.simple-brand small{max-width:160px;white-space:normal}.nav-shell .workspace{min-width:115px;max-width:144px}.nav-shell .tab{padding:0 8px}.global-search{min-width:0;font-size:11px}.canvas-action-label{display:none}.canvas-action{padding:5px!important}.side{width:172px!important;min-width:172px!important}.inspector{width:250px!important;min-width:250px!important}}
+
+
+/* FACET v1.0: actionbar scoped to center, stable side panes */
+.canvas-local-tools {width:100%;flex:0 0 50px;min-width:0;padding:5px 14px;overflow-x:auto;overflow-y:hidden;white-space:nowrap;scrollbar-width:thin}
+.content{min-width:0}
+.inspector-tabs{display:none!important}
+\n/* FACET v1.1: Windows 2000-inspired classic appearance. Layout and behavior remain unchanged. */
+:root{color-scheme:light;--bg:#d4d0c8;--panel:#ece9d8;--panel-hi:#f5f3e9;--panel-low:#e1ded2;--line:#8b8b87;--ink:#191919;--muted:#505050;--accent:#153c7b;--accent-bg:#b9cde8;--green:#0e6352;--shadow:none}
+html,body{font-family:Tahoma,"MS UI Gothic","Segoe UI",sans-serif!important;font-size:12px!important;background:#d4d0c8!important;color:#171717!important;letter-spacing:0!important}
+button,input,select,textarea{font-family:Tahoma,"MS UI Gothic","Segoe UI",sans-serif!important;color:#161616!important;border-radius:0!important}
+.nav-shell{background:#d4d0c8!important;height:66px!important;border-bottom:1px solid #878781!important;gap:19px!important;box-shadow:inset 0 1px #fff}
+.nav-identity{gap:0!important}.brand.simple-brand{color:#0c2951!important;font-size:22px!important;letter-spacing:0!important;min-width:235px}
+.brand.simple-brand small{color:#434d5b!important;font-size:9px!important;letter-spacing:0!important;font-weight:400!important;max-width:none!important;white-space:nowrap!important}
+.nav-shell .tabs{padding-left:0!important;background:transparent!important;align-items:flex-end!important;gap:3px!important}
+.nav-shell .tab{height:36px!important;align-items:center!important;justify-content:center!important;padding:0 18px!important;background:#c7c3b9!important;border:1px solid #858580!important;border-bottom:1px solid #777!important;box-shadow:inset 1px 1px #fff,inset -1px -1px #a8a69e;color:#333!important;font-weight:400!important;margin-bottom:0!important}
+.nav-shell .tab.active{background:#ece9d8!important;border-bottom-color:#ece9d8!important;box-shadow:inset 1px 1px #fff!important;color:#0c2d58!important;font-weight:700!important}
+.nav-search{margin-left:auto!important}.global-search{min-width:176px!important;text-align:left!important;background:#dedbd1!important;color:#1f1f1f!important;border:1px solid #7d7d7d!important;box-shadow:inset 1px 1px #fff,inset -1px -1px #a9a9a3!important}
+.main{background:#d4d0c8!important}.side{background:#e8e5d9!important;border-right:1px solid #92918d!important;padding-top:13px!important}.side-heading{color:#1d3251!important;letter-spacing:.07em!important;margin:13px 9px 8px!important;font-weight:700!important}
+.ws-selector-panel{background:#d4d0c8;border:1px solid #878681;box-shadow:inset 1px 1px #fff,inset -1px -1px #a5a49e;padding:10px 8px 12px;margin-bottom:15px}
+.ws-selector-label{display:block;font-size:10px;font-weight:700;letter-spacing:.055em;color:#1a3760;margin:0 0 7px}
+.side .workspace{background:#fff!important;color:#161616!important;width:100%!important;min-width:0!important;max-width:100%!important;padding:6px!important;border:1px solid #777!important;box-shadow:inset 1px 1px #9d9d9d!important;font-size:11px!important;font-weight:400!important}
+.sideitem{color:#242424!important;border:1px solid transparent!important;background:transparent!important;border-radius:0!important;font-size:12px!important}
+.sideitem:hover{color:#111!important;background:#d4deea!important;border-color:#a3a7b0!important}
+.sideitem.active{color:#fff!important;background:#164184!important;border-color:#164184!important;font-weight:400!important}
+.sideitem .count{color:inherit!important;opacity:.75}.sidefoot{color:#555!important;border-top:1px solid #a19f96!important}
+.content{background:#d4d0c8!important}.inspector{background:#ece9d8!important;border-left:1px solid #888!important;color:#171717!important}
+.inspector h3{color:#153b76!important;font-weight:700!important}.inspector label{color:#414141!important;letter-spacing:0!important}.helper,.muted,.subheading,.outline-meta{color:#4c4c4c!important}
+.inspector textarea,.simple-input,.simple-select{background:#fff!important;color:#111!important;border:1px solid #898989!important;border-radius:0!important;box-shadow:inset 1px 1px #b4b4b4!important}
+.tool,.light-btn,.primary,.navbutton,.canvas-action,.outline-sticky .light-btn{background:#d4d0c8!important;color:#1a1a1a!important;border:1px solid #838383!important;border-radius:0!important;box-shadow:inset 1px 1px #fff,inset -1px -1px #92928e!important;font-weight:400!important}
+.tool:hover,.light-btn:hover,.primary:hover,.canvas-action:hover{background:#e8e5dc!important;color:#151515!important}
+.tool.active,.light-btn.active,.active-action{background:#b3c6df!important;color:#0c2b57!important;box-shadow:inset 1px 1px #777!important}
+.canvas-actionbar,.canvas-local-tools{background:#dedbd2!important;border-bottom:1px solid #878681!important;color:#131313!important}.canvas-action-label{color:#263d5c!important;font-weight:700!important}
+.canvascontrols{background:#e8e5d9!important;border-bottom:1px solid #aaa79f!important;color:#272727!important}.canvascontrols strong,.canvascontrols .muted{color:#263b58!important}
+.stage{background-color:#faf9f5!important;background-image:radial-gradient(#c9c7c0 1px,transparent 1px)!important}
+.para,.memocard,.sectionrow,.outline-section-block{background:#fcfcfa!important;border:1px solid #818181!important;border-radius:0!important;box-shadow:inset 1px 1px #fff!important;color:#171717!important}
+.para.selected{outline:2px solid #174d9a!important}.para-head{background:#e6e9ef!important;border-bottom:1px solid #969da8!important}.para-head strong,.notechip b{color:#1b1b1b!important}
+.para .crumb,.para-footer{color:#475164!important}.para-head .expand{color:#274a79!important}.notechip{background:#f7f7f4!important;color:#202020!important;border:1px solid #b2b2ac!important;border-radius:0!important}.notechip:hover{background:#e5edf8!important}.notechip span{color:#424242!important}
+.unassigned-note{background:#fff!important;color:#191919!important;border-radius:0!important;border:1px dashed #737373!important}.unassigned-note p{color:#3c3c3c!important}
+.tree-node{background:#e2e9f4!important;color:#153d76!important;border:1px solid #8f9eb1!important;border-radius:0!important;box-shadow:none!important}.connector{background:#9fa7b0!important}
+.status,.zoom-pill{background:#e6e3d9!important;color:#333!important;border:1px solid #8b8b83!important;border-radius:0!important;box-shadow:inset 1px 1px #fff!important}.zoom-pill button{color:#222!important}
+.listview,.outline-primary{background:#ece9d8!important;color:#171717!important}.heading,.pgroup-title{color:#152c50!important}.outline-workspace{background:#ece9d8!important}
+.outline-node{color:#222!important;border-radius:0!important}.outline-node:hover{background:#d7e2ef!important}.outline-section{background:#c7d5e8!important;border:1px solid #93a6c1!important}.outline-subsection{background:#dbe5f2!important}.outline-paragraph{background:#e9e9e3!important}.outline-note{color:#333!important}
+.outline-icon,.drag-handle,.collapse-toggle{color:#204477!important}.outline-note-list,.outline-subsection-block{border-color:#a2a6aa!important}.outline-unassigned{border:1px dashed #8b8b8b!important;border-radius:0!important}.outline-sticky{background:#ece9d8!important}
+.manuscript-split{background:#dedbd2!important;border-left:1px solid #8b8b8b!important}.manuscript-split-header{background:#ced8e7!important;border-bottom:1px solid #939393!important}.manuscript-split-header strong{color:#173b75!important}
+.manuscript-scroll{background:#dcd9cf!important}.manuscript,.manuscript-inline{background:#fff!important;color:#171717!important;border:1px solid #999!important;border-radius:0!important;box-shadow:0 1px 1px #8e8e8e!important}.manuscript p{color:#262626!important}
+.memocard{background:#fff!important}.memocard h4{color:#1e2c41!important}.memocard p{color:#424242!important}.tag{background:#d9e3ef!important;color:#183a65!important;border-radius:0!important;border:1px solid #b0c0d2!important}
+.table,.table th,.table td{color:#202020!important;border-color:#aaa!important}.table{background:#fff!important}.table th{background:#d5dce8!important;color:#183d70!important}
+.refchoice,.link{color:#17385f!important;background:#edf2f6!important;border:1px solid #aaa!important;border-radius:0!important}.refchoice:hover,.link:hover{background:#dce8f7!important}.refchoice small{color:#3b3b3b!important}
+.modal,.ctx{background:#e9e6dc!important;color:#171717!important;border:2px solid #8a8a85!important;border-radius:0!important;box-shadow:inset 1px 1px #fff,3px 3px #666!important}.modalback{background:rgba(30,30,30,.45)!important}.ctx button{color:#191919!important;border-radius:0!important}.ctx button:hover{background:#164184!important;color:#fff!important}.toast{background:#133b79!important;color:#fff!important;border-radius:0!important}
+.app-statusbar{background:#d4d0c8!important;color:#3b3b3b!important;border-top:1px solid #fff!important}.status-divider{color:#777!important}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:1px dotted #203d68!important;outline-offset:1px!important}
+
+
+/* FACET v1.2 — Obsidian-like compact visual skin.
+   Visual overrides only: existing markup, three-pane geometry and JS are unchanged. */
+:root {
+  color-scheme:dark;
+  --bg:#17171b; --panel:#202024; --panel-hi:#29292e; --panel-low:#1b1b1f;
+  --line:#36363e; --ink:#dcdae3; --muted:#9996a4;
+  --accent:#a78bfa; --accent-bg:#393044; --green:#80b5a4;
+  --shadow:0 2px 10px rgba(0,0,0,.13);
+}
+html,body {
+  background:#17171b!important; color:#dcdae3!important;
+  font-family:"Segoe UI Variable Text","Segoe UI",Inter,"Noto Sans JP",sans-serif!important;
+  font-size:12px!important; line-height:1.42!important;
+  letter-spacing:0!important;
+}
+button,input,textarea,select {
+  font-family:inherit!important; color:var(--ink)!important;
+  border-radius:5px!important; font-size:inherit!important;
+}
+button {transition:background .11s,border-color .11s}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible {
+  outline:2px solid #a78bfa!important; outline-offset:1px!important;
+}
+* {scrollbar-width:thin;scrollbar-color:#52505b #222227}
+.nav-shell {
+  background:#202024!important; height:55px!important; gap:13px!important;
+  border-bottom:1px solid #33333b!important; box-shadow:none!important;
+}
+.brand.simple-brand {color:#eceaf1!important; font-size:18px!important; letter-spacing:.025em!important}
+.brand.simple-brand small {color:#9895a4!important; font-size:9px!important; letter-spacing:0!important}
+.nav-shell .tabs {
+  background:transparent!important; gap:3px!important; border:0!important;
+  padding:0!important; align-items:center!important;
+}
+.nav-shell .tab {
+  background:transparent!important; color:#aaa6b5!important;
+  border:1px solid transparent!important; border-radius:5px!important;
+  box-shadow:none!important; height:30px!important; margin:0!important;
+  padding:0 13px!important; font-weight:500!important;
+}
+.nav-shell .tab:hover{background:#2c2b32!important;color:#efebf6!important}
+.nav-shell .tab.active {
+  background:#343139!important; color:#e4d8ff!important;
+  border:1px solid #4e435e!important; box-shadow:none!important;
+  font-weight:600!important;
+}
+.nav-search{margin-left:auto!important}
+.global-search {
+  min-width:166px!important; background:#29292f!important; color:#bbb7c5!important;
+  border:1px solid #414049!important; box-shadow:none!important; text-align:left!important;
+}
+.global-search:hover{background:#34333c!important}
+.main,.content {background:#17171b!important}
+.side{
+  background:#202024!important;border-right:1px solid #35353e!important;
+  padding:8px 8px!important;
+}
+.ws-selector-panel {
+  margin-bottom:9px!important;padding:8px!important;
+  background:#25252b!important;border:1px solid #393840!important;
+  border-radius:6px!important;box-shadow:none!important;
+}
+.ws-selector-label,.side-heading{
+  color:#a4a0b0!important;font-size:10px!important;letter-spacing:.06em!important;
+  font-weight:600!important;
+}
+.ws-selector-label{margin:0 0 4px!important}
+.side-heading{margin:11px 8px 6px!important}
+.side .workspace{
+  background:#2b2a31!important;color:#e4e1e9!important;
+  border:1px solid #44424c!important;box-shadow:none!important;
+  padding:5px 8px!important;height:29px!important;font-weight:500!important;
+}
+.sideitem{
+  min-height:28px!important;padding:5px 8px!important;margin:1px 0!important;
+  border:1px solid transparent!important;border-radius:5px!important;
+  color:#bebbc7!important;background:transparent!important;font-size:12px!important;
+}
+.sideitem.level1{padding-left:20px!important}
+.sideitem:hover{background:#303039!important;color:#eee9f2!important;border-color:transparent!important}
+.sideitem.active{
+  background:#41344f!important;color:#e6d7ff!important;
+  border-color:transparent!important;font-weight:600!important;
+}
+.sideitem .count{color:#a9a2b5!important}
+.sidefoot {color:#817d8d!important;border-top:1px solid #393840!important;margin-top:12px!important;padding:9px 8px!important}
+.inspector {
+  background:#202024!important;border-left:1px solid #36363e!important;
+  padding:11px 12px!important;color:#dedbe5!important;
+}
+.inspector h3 {color:#e6e2ea!important;font-size:13px!important;font-weight:650!important}
+.inspector label {
+  color:#a8a3b4!important;font-size:10px!important;letter-spacing:.045em!important;
+  margin:11px 0 4px!important;
+}
+.helper,.muted,.subheading,.outline-meta{color:#9995a4!important}
+.inspector textarea,.simple-input,.simple-select{
+  background:#19191d!important;color:#dedbe5!important;
+  border:1px solid #3f3d48!important;border-radius:5px!important;
+  box-shadow:none!important;padding:6px 8px!important;
+}
+.inspector textarea{line-height:1.52!important;padding:8px!important}
+.tool,.light-btn,.primary,.navbutton,.canvas-action,.outline-sticky .light-btn {
+  background:#2c2b32!important;color:#d1cdd9!important;
+  border:1px solid #43414c!important;border-radius:5px!important;
+  box-shadow:none!important;font-weight:500!important;
+  padding:5px 9px!important;min-height:27px!important;
+}
+.tool:hover,.light-btn:hover,.primary:hover,.canvas-action:hover,
+.navbutton:hover{background:#393641!important;color:#f2eef9!important;border-color:#58505f!important}
+.primary{background:#594875!important;color:#f1e9ff!important;border-color:#76618c!important}
+.primary:hover{background:#695581!important}
+.tool.active,.light-btn.active,.active-action{
+  background:#493a5b!important;color:#ebdfff!important;box-shadow:none!important;
+}
+.canvas-actionbar,.canvas-local-tools{
+  background:#242429!important;border-bottom:1px solid #36363d!important;
+  color:#d6d2dc!important;
+  min-height:35px!important;flex-basis:35px!important;
+  padding:3px 9px!important;gap:4px!important;
+}
+.canvas-action-label {color:#9d91ad!important;font-size:10px!important;font-weight:600!important}
+.canvascontrols{
+  background:#202024!important;border-bottom:1px solid #34343c!important;
+  color:#b8b3c0!important;height:38px!important;gap:5px!important;
+  padding:0 10px!important;
+}
+.canvascontrols strong,.canvascontrols .muted{color:#c6c0ce!important}
+.stage{background-color:#17171c!important;background-image:radial-gradient(#343039 .85px,transparent .85px)!important;background-size:20px 20px!important}
+.para,.memocard,.sectionrow,.outline-section-block{
+  background:#25252b!important;border:1px solid #42404b!important;
+  border-radius:7px!important;box-shadow:0 2px 9px rgba(0,0,0,.16)!important;
+  color:#dedbe4!important;
+}
+.para.selected {outline:2px solid #a78bfa!important}
+.para-head {
+  padding:9px 10px 7px!important;
+  background:#2b2933!important;border-bottom:1px solid #423e49!important;
+}
+.para-head strong,.notechip b{color:#e5e1ec!important}
+.para .crumb,.para-footer{color:#a6a0b3!important}
+.para .crumb{margin-bottom:2px!important;font-size:10px!important}
+.para-head .expand{color:#bba9df!important}
+.notes{padding:6px 8px 8px!important;gap:5px!important}
+.notechip{
+  min-height:0!important;padding:6px 8px!important;
+  background:#2b2a31!important;border:1px solid #3d3b47!important;
+  border-radius:5px!important;color:#e0dce6!important;
+}
+.notechip:hover{background:#34313e!important;border-color:#6b5980!important}
+.notechip span{
+  color:#b0acb8!important;line-height:1.38!important;
+  margin-top:2px!important;font-size:11px!important;
+  -webkit-line-clamp:5!important;max-height:6.9em!important;
+}
+.para-footer{padding:1px 10px 7px!important}
+.unassigned-note{
+  background:#2a2931!important;color:#e8e3ee!important;
+  border:1px dashed #7c6b91!important;border-radius:6px!important;
+  box-shadow:0 3px 12px rgba(0,0,0,.18)!important;
+  padding:9px 10px!important;
+}
+.unassigned-note p{color:#bcb7c6!important}
+.tree-node{
+  background:#302b3b!important;color:#d8c8ef!important;
+  border:1px solid #68567c!important;border-radius:6px!important;
+  box-shadow:none!important;padding:7px 11px!important;
+}
+.connector{background:#5c526b!important}
+.status,.zoom-pill{
+  background:#25242b!important;color:#aaa5b3!important;
+  border:1px solid #45414d!important;border-radius:5px!important;
+  box-shadow:none!important;padding:3px 7px!important;
+}
+.zoom-pill button{color:#c5b8d9!important}
+.listview,.outline-primary,.outline-workspace{
+  background:#1b1b20!important;color:#dedbe4!important;
+}
+.listview{padding:15px 18px!important}
+.heading{color:#e7e3ec!important;font-size:19px!important;margin-bottom:4px!important}
+.pgroup-title{color:#e5deed!important;font-size:13px!important;margin:14px 0 8px!important}
+.subheading{margin-bottom:12px!important}
+.searchline{gap:7px!important;margin:9px 0 14px!important}
+.viewbar{gap:6px!important;margin-bottom:10px!important}
+.outline-node{
+  color:#ddd9e2!important;border-radius:5px!important;
+  padding:5px 8px!important;min-height:28px!important;gap:7px!important;
+}
+.outline-node:hover{background:#302c39!important}
+.outline-section{background:#2e2a36!important;border:1px solid #423b4e!important}
+.outline-subsection{background:#2a2831!important}
+.outline-paragraph{background:#24242b!important}
+.outline-note{color:#c7c0d0!important}
+.outline-icon,.drag-handle,.collapse-toggle{color:#a79ab9!important}
+.outline-section-content{padding:3px 8px 7px 13px!important}
+.outline-subsection-block{margin:3px 0!important;padding-left:9px!important;border-color:#494450!important}
+.outline-note-list{margin-left:23px!important;padding-left:9px!important;border-color:#45404d!important}
+.outline-unassigned{border:1px dashed #5f586b!important;border-radius:6px!important;padding:8px!important}
+.outline-sticky{background:#1b1b20!important;padding:5px 0 7px!important}
+.manuscript-split{
+  background:#1e1d24!important;border-left:1px solid #41404a!important;
+}
+.manuscript-split-header{
+  background:#2c2934!important;border-bottom:1px solid #45404d!important;
+  padding:7px 9px!important;
+}
+.manuscript-split-header strong{color:#dfd4ee!important}
+.manuscript-scroll{background:#1b1a20!important}
+.manuscript,.manuscript-inline{
+  background:#26252c!important;color:#e3dfe9!important;
+  border:1px solid #45414d!important;border-radius:6px!important;
+  box-shadow:none!important;
+}
+.manuscript{padding:22px 27px!important;line-height:1.7!important;min-height:450px!important}
+.manuscript p{color:#dad5e1!important}
+.memocard{background:#26252c!important;padding:11px!important}
+.memocard h4{color:#e8e3ee!important;font-size:12px!important;margin-bottom:5px!important}
+.memocard p{color:#b8b2c2!important;font-size:11px!important;margin-bottom:6px!important}
+.cardgrid{gap:9px!important;grid-template-columns:repeat(auto-fill,minmax(155px,1fr))!important}
+.tag{
+  background:#373040!important;color:#cdb3ee!important;
+  border:1px solid #50455d!important;border-radius:4px!important;
+  padding:2px 5px!important;font-size:10px!important;
+}
+.table,.table th,.table td{color:#d7d2df!important;border-color:#3e3a45!important}
+.table{background:#24232a!important}
+.table th{background:#302b37!important;color:#c9b9dc!important}
+.table th,.table td{padding:8px!important}
+.refchoice,.link{
+  color:#cdb6ed!important;background:#2f2939!important;
+  border:1px solid #474053!important;border-radius:5px!important;
+  padding:7px!important;
+}
+.refchoice:hover,.link:hover{background:#3b3148!important}
+.refchoice small{color:#aaa1b7!important}
+.modal,.ctx{
+  background:#25242c!important;color:#ded9e4!important;
+  border:1px solid #575060!important;border-radius:8px!important;
+  box-shadow:0 12px 35px rgba(0,0,0,.4)!important;
+}
+.modalback{background:rgba(5,5,8,.7)!important}
+.ctx button{color:#d7d1e1!important;border-radius:5px!important;padding:7px 9px!important}
+.ctx button:hover{background:#473953!important;color:#f4e9ff!important}
+.toast{background:#3c324a!important;color:#f0e8f7!important;border-radius:6px!important}
+.app-statusbar{
+  background:#202024!important;color:#898594!important;
+  border-top:1px solid #38363e!important;height:24px!important;
+  font-size:10px!important;
+}
+.status-divider{color:#5d5963!important}
+
+
+/* FACET v1.3: collapsible side panes and Vault Settings */
+.main{position:relative!important}
+.side,.inspector{position:relative!important;transition:none!important}
+.pane-toggle{
+ display:flex!important;align-items:center!important;justify-content:center!important;
+ width:23px!important;height:23px!important;padding:0!important;
+ border:1px solid #44414c!important;background:#2c2b32!important;
+ color:#bab1c7!important;box-shadow:none!important;border-radius:4px!important;
+ font-size:11px!important;line-height:1!important;cursor:pointer!important;
+ z-index:7!important;
+}
+.pane-toggle:hover{background:#42364f!important;color:#e9dbff!important}
+.pane-toggle-left{position:relative!important;float:right!important;margin:0 1px 5px 5px!important}
+.pane-toggle-right{position:absolute!important;top:8px!important;right:8px!important}
+.inspector-content{margin-top:27px!important}
+.side.pane-closed,.inspector.pane-closed{
+ width:30px!important;min-width:30px!important;max-width:30px!important;
+ padding:5px 3px!important;overflow:hidden!important;
+ background:#202024!important;flex:none!important;
+}
+.pane-closed .pane-restore{margin:3px 0!important}
+.nav-search{display:flex!important;align-items:center!important;gap:5px!important}
+.settings-button{
+ min-width:31px!important;width:31px!important;height:30px!important;
+ padding:0!important;font-size:17px!important;line-height:1!important;
+ flex:none!important;
+}
+.settings-modal{width:min(690px,94vw)!important;max-height:88vh!important;overflow:auto!important}
+.settings-title{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.settings-title h2{margin:0!important;font-size:18px!important}
+.settings-heading{font-size:13px;font-weight:700;color:#e0d3f2;margin:17px 0 6px}
+.settings-description,.settings-hint{font-size:11px;color:#aaa3b5;line-height:1.55}
+.settings-hint{margin-top:15px;padding:9px;background:#302a39;border:1px solid #494054;border-radius:5px}
+.settings-workspaces{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.vault-setting-row{border:1px solid #45404c;border-radius:6px;padding:10px;background:#24222b}
+.vault-setting-row label{display:block;font-weight:600;margin-bottom:6px;color:#dbd5e2}
+.vault-input-row{display:flex;align-items:center;gap:7px}
+.vault-input-row input{flex:1;min-width:0}
+.vault-input-row button{flex:none}
+.vault-setting-row .helper{margin-top:5px}
+.settings-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+@media(max-width:750px){
+ .inspector.pane-closed{display:flex!important}
+ .inspector:not(.pane-closed){display:block!important}
+}
+
+</style></head><body><div id="app" class="app"></div><script>
+(function(){'use strict';
+const data=[{id:'zao',name:'Zao · Diffusion Chronometry',sections:[{id:'intro',name:'Introduction',subs:[{id:'background',name:'Background'}]},{id:'methods',name:'Methods',subs:[]},{id:'results',name:'Results',subs:[{id:'zoning',name:'Zoning patterns'},{id:'times',name:'Diffusion timescales'}]},{id:'discussion',name:'Discussion',subs:[{id:'recharge',name:'Magma recharge'}]},{id:'conclusion',name:'Conclusions',subs:[]}],notes:[{id:'n1',title:'Reverse zoning',body:'Reverse zoning in plagioclase records changes in magma conditions.',tags:['Petrology','Zoning'],created:1},{id:'n2',title:'Diffusion timescales',body:'Diffusion timescales become progressively shorter toward eruption.',tags:['Diffusion'],created:2},{id:'n3',title:'Recharge frequency',body:'This pattern may indicate an increasing frequency of magma recharge. See also [[Mush reactivation]].',tags:['Recharge','Diffusion'],created:3},{id:'n4',title:'Mush reactivation',body:'Repeated thermal inputs can reactivate a crystal-rich mush [@Smith2024].',tags:['Recharge','Modeling'],created:4},{id:'n5',title:'Temperature uncertainty',body:'Temperature uncertainty influences the estimated diffusion timescales.',tags:['Diffusion','Uncertainty'],created:5},{id:'n6',title:'Research motivation',body:'Constraining the timescales of pre-eruptive processes improves our understanding of volcanic unrest.',tags:['Introduction'],created:6},{id:'n7',title:'Analytical procedure',body:'Zoning profiles were examined using electron microprobe analyses.',tags:['Methods'],created:7},{id:'n9',title:'Unplaced insight',body:'A possible alternative interpretation to revisit before writing.',tags:['Ideas'],created:9},{id:'n8',title:'Previous work',body:'Previous work has established a link between zoning and recharge [@Tanaka2022].',tags:['Literature'],created:8}],paragraphs:[{id:'p1',title:'Research background',section:'background',notes:['n6','n8'],x:120,y:100},{id:'p2',title:'Analytical methods',section:'methods',notes:['n7'],x:600,y:155},{id:'p3',title:'Zoning observations',section:'zoning',notes:['n1'],x:145,y:410},{id:'p4',title:'Diffusion results',section:'times',notes:['n2','n5'],x:565,y:440},{id:'p5',title:'Recharge interpretation',section:'recharge',notes:['n3','n4'],x:940,y:135}],references:[{key:'Smith2024',author:'Smith et al.',year:'2024',title:'Magma recharge and crystal mush reactivation',journal:'Journal of Volcanology'},{key:'Tanaka2022',author:'Tanaka et al.',year:'2022',title:'Plagioclase zoning and magma dynamics',journal:'Contributions to Mineralogy and Petrology'}]},{id:'chamber',name:'Magma Chamber · Thermal Modeling',sections:[{id:'intro',name:'Introduction',subs:[]},{id:'methods',name:'Methods',subs:[{id:'fvm',name:'Numerical model'}]},{id:'results',name:'Results',subs:[]},{id:'discussion',name:'Discussion',subs:[]}],notes:[{id:'m1',title:'Enthalpy formulation',body:'The enthalpy method incorporates the latent heat released during crystallization.',tags:['Modeling','Thermal'],created:1},{id:'m2',title:'Cooling timescales',body:'Cooling timescales depend on chamber geometry and boundary conditions.',tags:['Thermal'],created:2},{id:'m4',title:'Unplaced model assumption',body:'Test sensitivity to the initial geotherm.',tags:['Modeling'],created:4},{id:'m3',title:'Recharge frequency',body:'Injection events modify the thermal evolution of the reservoir.',tags:['Recharge'],created:3}],paragraphs:[{id:'q1',title:'Model formulation',section:'fvm',notes:['m1','m2'],x:180,y:150},{id:'q2',title:'Injection conditions',section:'discussion',notes:['m3'],x:620,y:350}],references:[{key:'Annen2008',author:'Annen et al.',year:'2008',title:'The geodynamics of igneous bodies',journal:'Journal of Petrology'}]}];
+const state={ws:'zao',tab:'Canvas',canvas:'Main Canvas',canvases:{zao:['Main Canvas'],chamber:['Main Canvas']},scope:'all',selection:'n2',search:'',groupBy:'tag',sort:'created',global:false,pan:{x:70,y:50},scale:.86,ctx:null,modal:null,expanded:new Set(['p1','p2','p3','p4','p5','q1','q2']),collapsed:new Set(),multi:false,edit:false,inspectorTab:'Note',sideTab:'Sections',layout:{},dragId:null,selectedParagraph:'p1',cardSection:'all',manuscriptSplit:false,leftOpen:true,rightOpen:true,vaultPaths:{}};
+const $=s=>document.querySelector(s);const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));const ws=()=>data.find(x=>x.id===state.ws);const note=id=>ws().notes.find(n=>n.id===id);const para=id=>ws().paragraphs.find(p=>p.id===id);const rootOf=id=>{let w=ws();for(let s of w.sections){if(s.id===id)return s.name;for(let sub of s.subs)if(sub.id===id)return s.name+' › '+sub.name}return 'Unassigned'};const pFor=nid=>ws().paragraphs.find(p=>p.notes.includes(nid));const sectionTitle=id=>rootOf(id);const byScope=p=>state.scope==='all'||p.section===state.scope||ws().sections.find(s=>s.id===state.scope)?.subs.some(t=>t.id===p.section);let toastTimer;
+function numberedSections(w=ws()){let out={};w.sections.forEach((s,i)=>{out[s.id]=(i+1)+'. '+s.name;s.subs.forEach((sub,j)=>{out[sub.id]=(i+1)+'.'+(j+1)+'. '+sub.name})});return out}
+function numberedPath(id,w=ws()){let n=numberedSections(w);for(const s of w.sections){if(s.id===id)return n[id];if(s.subs.some(v=>v.id===id))return n[s.id]+' › '+n[id]}return 'Unassigned'}
+
+function toast(txt){document.querySelector('.toast')?.remove();let el=document.createElement('div');el.className='toast';el.textContent=txt;document.body.appendChild(el);clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.remove(),2900)}
+const icons={plus:'＋',copy:'⧉',paste:'▤',group:'▣',multi:'◫',delete:'⌫',archive:'▱',cite:'❞'};
+
+const vaultSettingsKey='FACET-mock-vault-settings-v1';
+try{const saved=JSON.parse(localStorage.getItem(vaultSettingsKey)||'{}');if(saved&&typeof saved==='object')state.vaultPaths=saved}catch(e){}
+function currentVaultPath(id){return state.vaultPaths[id]||''}
+function paneMarkup(){
+ const left=state.leftOpen
+  ?sidebar().replace('<aside class="side">','<aside class="side"><button class="pane-toggle pane-toggle-left" id="toggle-left" title="左ペインを閉じる" aria-label="左ペインを閉じる">◀</button>')
+  :'<aside class="side pane-closed" aria-label="左ペイン（折りたたみ）"><button class="pane-toggle pane-restore" id="toggle-left" title="左ペインを開く" aria-label="左ペインを開く">▶</button></aside>';
+ const right=state.rightOpen
+  ?'<aside class="inspector"><button class="pane-toggle pane-toggle-right" id="toggle-right" title="右ペインを閉じる" aria-label="右ペインを閉じる">▶</button><div id="inspector" class="inspector-content"></div></aside>'
+  :'<aside class="inspector pane-closed" aria-label="右ペイン（折りたたみ）"><button class="pane-toggle pane-restore" id="toggle-right" title="右ペインを開く" aria-label="右ペインを開く">◀</button></aside>';
+ return {left,right};
+}
+function bindPaneToggles(){
+ const left=$('#toggle-left'),right=$('#toggle-right');
+ if(left)left.onclick=()=>{state.leftOpen=!state.leftOpen;shell()};
+ if(right)right.onclick=()=>{state.rightOpen=!state.rightOpen;shell()};
+}
+function openSettings(){
+ document.querySelector('.settings-back')?.remove();
+ let back=document.createElement('div');back.className='modalback settings-back';
+ const rows=data.map(w=>`<div class="vault-setting-row">
+   <label for="vault-${esc(w.id)}">${esc(w.name)}</label>
+   <div class="vault-input-row"><input id="vault-${esc(w.id)}" class="simple-input vault-path" data-vault="${esc(w.id)}" placeholder="例: D:\\Research\\FACET\\${esc(w.id)}" value="${esc(currentVaultPath(w.id))}" spellcheck="false">
+   <button class="light-btn vault-browse" data-vault="${esc(w.id)}" title="フォルダーを選択">Browse…</button></div>
+   <div class="helper">Markdown Vaultの参照先。空欄の場合は未設定。</div>
+  </div>`).join('');
+ back.innerHTML=`<div class="modal settings-modal" role="dialog" aria-modal="true" aria-label="FACET Settings">
+ <div class="settings-title"><h2>⚙ Settings</h2><button id="close-settings" class="tool" aria-label="閉じる">✕</button></div>
+ <div class="settings-heading">Vault Locations</div>
+ <div class="settings-description">WorkspaceごとのVault参照先を設定します。HTMLモックではパス表示のみで、実際のVaultの読み書きは行いません。</div>
+ <div class="settings-workspaces">${rows}</div>
+ <div class="settings-hint">Windowsアプリ本実装では、BrowseからOSのフォルダー選択ダイアログを開き、選択したパスを検証・保存します。</div>
+ <div class="settings-actions"><button class="light-btn" id="cancel-settings">Cancel</button><button class="primary" id="save-settings">Save settings</button></div></div>`;
+ document.body.appendChild(back);
+ const close=()=>back.remove();
+ back.querySelector('#close-settings').onclick=close;back.querySelector('#cancel-settings').onclick=close;
+ back.addEventListener('pointerdown',e=>{if(e.target===back)close()});
+ back.querySelectorAll('.vault-browse').forEach(b=>b.onclick=async()=>{
+   const input=back.querySelector(`[data-vault="${b.dataset.vault}"].vault-path`);
+   if(!input)return;
+   if(typeof window.showDirectoryPicker==='function'){
+     try{
+       const handle=await window.showDirectoryPicker({mode:'read'});
+       // Browser's folder picker does not grant reliable access to an absolute Windows path.
+       input.value=handle.name;
+       toast('選択フォルダー名を設定しました。絶対パスはWindowsアプリで取得します');
+     }catch(err){if(err?.name!=='AbortError')toast('フォルダー選択を利用できません')}
+   }else{
+     const picker=document.createElement('input');picker.type='file';picker.setAttribute('webkitdirectory','');picker.setAttribute('directory','');picker.multiple=true;picker.hidden=true;
+     picker.onchange=()=>{const file=picker.files?.[0];if(file){input.value=file.webkitRelativePath.split('/')[0]||'';toast('フォルダー名のみ取得しました。絶対パスは入力欄に指定してください')}picker.remove()};
+     back.appendChild(picker);picker.click();
+   }
+ });
+ back.querySelector('#save-settings').onclick=()=>{
+   const paths={};
+   back.querySelectorAll('.vault-path').forEach(i=>{const val=i.value.trim();if(val)paths[i.dataset.vault]=val});
+   state.vaultPaths=paths;
+   try{localStorage.setItem(vaultSettingsKey,JSON.stringify(paths))}catch(e){}
+   close();toast('Vault参照先を保存しました（モック設定）');
+ };
+}
+
+function shell(){
+ let w=ws();
+ $('#app').innerHTML=`<div class="nav-shell"><div class="nav-identity"><div class="brand simple-brand">FACET<small>FACET Arranges Concepts, Evidence, and Text</small></div></div><nav class="tabs">${['Canvas','Outline','Cards','Reference'].map(t=>`<button class="tab ${t===state.tab?'active':''}" data-tab="${t}">${t}</button>`).join('')}</nav><div class="nav-search"><button class="light-btn global-search" data-action="global">⌕ Search all workspaces</button><button class="light-btn settings-button" id="open-settings" title="Settings" aria-label="Settings">⚙</button></div></div><div class="main">${paneMarkup().left}<main class="content" id="content"></main>${paneMarkup().right}</div><footer class="app-statusbar"><span class="status-online"></span><span>LOCAL WORKSPACE</span><span class="status-divider">│</span><span>Markdown vault</span><div class="grow"></div><span>FACET · INTERACTIVE PROTOTYPE</span><span class="status-divider">│</span><span>v1.3</span></footer>`;
+ if($('#ws'))$('#ws').onchange=e=>{state.ws=e.target.value;state.scope='all';state.cardSection='all';state.selection=ws().notes[0]?.id;state.pan={x:70,y:50};state.scale=.86;state.global=false;state.inspectorTab='Note';state.manuscriptSplit=false;shell()};
+ document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;state.global=false;state.inspectorTab=state.inspectorTab==='Manuscript'?'Note':state.inspectorTab;shell()});
+ document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>action(b.dataset.action));
+ document.querySelectorAll('[data-scope]').forEach(b=>b.onclick=()=>{state.scope=b.dataset.scope;state.cardSection=b.dataset.scope;state.pan={x:100,y:60};state.scale=.86;shell()});
+ renderContent();renderInspector();bindSidebar();bindPaneToggles();
+ $('#open-settings').onclick=openSettings;
+}
+function sidebar(){
+ let w=ws();if(state.global)return `<aside class="side"><div class="ws-selector-panel"><label class="ws-selector-label" for="ws">WORKSPACE</label><select class="workspace" id="ws" aria-label="Workspace">${data.map(x=>`<option value="${x.id}" ${x.id===state.ws?'selected':''}>${esc(x.name)}</option>`).join('')}</select></div><div class="side-heading">WORKSPACES</div><button class="sideitem active">⌕ Global Cards</button><button class="sideitem" id="exitglobal">← Back to workspace</button></aside>`;
+ const nums=numberedSections(w);let h=`<aside class="side"><div class="ws-selector-panel"><label class="ws-selector-label" for="ws">WORKSPACE</label><select class="workspace" id="ws" aria-label="Workspace">${data.map(x=>`<option value="${x.id}" ${x.id===state.ws?'selected':''}>${esc(x.name)}</option>`).join('')}</select></div><div class="side-heading">SECTIONS</div><button data-scope="all" class="sideitem ${state.scope==='all'?'active':''}">▦ All <span class="count">${w.paragraphs.length} groups</span></button>`;
+ for(const sec of w.sections){h+=`<button data-scope="${sec.id}" class="sideitem ${state.scope===sec.id?'active':''}">▾ ${esc(nums[sec.id])}</button>`;for(const sub of sec.subs)h+=`<button data-scope="${sub.id}" class="sideitem level1 ${state.scope===sub.id?'active':''}">↳ ${esc(nums[sub.id])}</button>`}
+ return h+`<div class="sidefoot">${esc(w.name)}<br>Sections navigator</div></aside>`;
+}
+function bindSidebar(){let back=$('#exitglobal');if(back)back.onclick=()=>{state.global=false;state.tab='Cards';shell()}}
+function renderContent(){let c=$('#content');if(state.global){globalCards();return}if(state.tab==='Canvas')canvas(c);else if(state.tab==='Outline')outline(c);else if(state.tab==='Cards')cards(c);else references(c)}
+function canvas(c){
+ c.innerHTML=`<div class="canvas-actionbar canvas-local-tools"><div class="canvas-action-label">CANVAS TOOLS</div>${[['plus','New'],['copy','Copy'],['paste','Paste'],['group','Group'],['multi','Select'],['delete','Delete'],['archive','Archive']].map(([k,t])=>`<button title="${t}" class="tool canvas-action ${state.multi&&k==='multi'?'active':''}" data-action="${k}">${icons[k]} <span>${t}</span></button>`).join('')}<div class="grow"></div><button class="light-btn" data-action="cite">❞ Citation</button></div><div class="canvascontrols"><strong>▧ ${esc(state.canvas)}</strong><span class="muted">/</span><span class="muted">${state.scope==='all'?'All':esc(numberedPath(state.scope))}</span><div class="grow"></div><span class="helper">Drag background to pan · Scroll to zoom</span><button class="light-btn" id="fit-all">Fit all</button><button class="light-btn" id="zoom-100">100%</button><button class="light-btn" id="fit-group">Fit group</button></div><div class="stage" id="stage"><div class="world" id="world"></div><div class="stagebottom"><div class="zoom-pill"><button id="minus">−</button><span id="zoomtext">${Math.round(state.scale*100)}%</span><button id="plus">＋</button></div><div class="grow"></div><div class="status">${state.scope==='all'?'Free layout':'Auto tree layout'} · ${ws().paragraphs.filter(byScope).length} groups</div></div></div>`;
+ paintWorld();bindStage();
+ $('#minus').onclick=()=>zoomCenter(.8);$('#plus').onclick=()=>zoomCenter(1.25);
+ $('#fit-all').onclick=()=>fitNodes([...document.querySelectorAll('#world .para,#world .tree-node,#world .unassigned-note')]);
+ $('#zoom-100').onclick=()=>{let st=$('#stage');let r=st.getBoundingClientRect();zoomCenter(1/state.scale,r.width/2,r.height/2)};
+ $('#fit-group').onclick=()=>{let el=document.querySelector(`#world .para[data-pid="${state.selectedParagraph}"]`);if(!el){el=document.querySelector('#world .para');if(el)state.selectedParagraph=el.dataset.pid}if(el)fitNodes([el]);else toast('表示中のParagraph Groupがありません')};
+}
+function fitNodes(elements){let stage=$('#stage');if(!stage||!elements.length)return;let bounds=elements.map(el=>({x:parseFloat(el.style.left)||0,y:parseFloat(el.style.top)||0,w:el.offsetWidth,h:el.offsetHeight}));let x0=Math.min(...bounds.map(o=>o.x)),y0=Math.min(...bounds.map(o=>o.y)),x1=Math.max(...bounds.map(o=>o.x+o.w)),y1=Math.max(...bounds.map(o=>o.y+o.h));let pad=55,sw=stage.clientWidth,sh=stage.clientHeight;let scale=Math.max(.1,Math.min(3, (sw-pad*2)/Math.max(1,x1-x0), (sh-pad*2)/Math.max(1,y1-y0)));state.scale=scale;state.pan={x:(sw-(x1-x0)*scale)/2-x0*scale,y:(sh-(y1-y0)*scale)/2-y0*scale};applyTransform()}
+function paintWorld(){let world=$('#world');if(!world)return;let ps=ws().paragraphs.filter(byScope);let tree=state.scope!=='all';let html='';if(tree){let groups={};ps.forEach(p=>(groups[p.section]??=[]).push(p));let row=0;for(let [sec,arr] of Object.entries(groups)){let sectionX=100;let y=70+row*340;html+=`<div class="tree-node" style="left:${sectionX}px;top:${y}px;width:230px">${esc(numberedPath(sec))}</div><div class="connector" style="left:214px;top:${y+45}px;width:2px;height:29px"></div>`;arr.forEach((p,i)=>{let pos={x:65+i*350,y:y+80};html+=paraHTML(p,pos,true)});row++}}else ps.forEach(p=>{let offset=state.canvas==='Main Canvas'?0:160;let pos=(state.layout[state.ws+':'+state.canvas+':'+p.id]||{x:p.x+offset,y:p.y+offset});html+=paraHTML(p,pos,false)});if(!tree){ws().notes.filter(n=>!pFor(n.id)&&!n.archived).forEach((n,i)=>{const pos=state.layout[state.ws+':unassigned:'+n.id]||{x:115+i*265,y:650};html+=`<div class="unassigned-note" data-unassigned="${n.id}" style="left:${pos.x}px;top:${pos.y}px"><div class="crumb">Unassigned · No Outline</div><strong>${esc(n.title)}</strong><p>${esc(n.body.slice(0,110))}</p></div>`})}world.innerHTML=html;applyTransform();world.querySelectorAll('.unassigned-note').forEach(el=>{el.onclick=()=>{state.selection=el.dataset.unassigned;state.inspectorTab='Note';renderInspector()};el.addEventListener('pointerdown',e=>{if(e.button!==0)return;e.stopPropagation();let start={x:e.clientX,y:e.clientY},pos={x:parseFloat(el.style.left),y:parseFloat(el.style.top)};function move(ev){el.style.left=pos.x+(ev.clientX-start.x)/state.scale+'px';el.style.top=pos.y+(ev.clientY-start.y)/state.scale+'px'}function up(){state.layout[state.ws+':unassigned:'+el.dataset.unassigned]={x:parseFloat(el.style.left),y:parseFloat(el.style.top)};window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up)}window.addEventListener('pointermove',move);window.addEventListener('pointerup',up)})});world.querySelectorAll('.para').forEach(el=>{el.onclick=e=>{if(e.target.closest('.expand')||e.target.closest('.notechip'))return;state.selection=para(el.dataset.pid)?.notes[0]||state.selection;state.selectedParagraph=el.dataset.pid;renderInspector();world.querySelectorAll('.para').forEach(n=>n.classList.toggle('selected',n===el))};el.querySelector('.expand').onclick=e=>{e.stopPropagation();let id=el.dataset.pid;state.expanded.has(id)?state.expanded.delete(id):state.expanded.add(id);paintWorld()};el.querySelectorAll('.notechip').forEach(n=>n.onclick=e=>{e.stopPropagation();state.selection=n.dataset.nid;state.selectedParagraph=el.dataset.pid;renderInspector();world.querySelectorAll('.para').forEach(n=>n.classList.remove('selected'));el.classList.add('selected')});el.querySelector('.para-head').addEventListener('pointerdown',e=>{if(tree||e.target.closest('button'))return;e.preventDefault();e.stopPropagation();let start={x:e.clientX,y:e.clientY};let pos={x:parseFloat(el.style.left),y:parseFloat(el.style.top)};function move(ev){el.style.left=pos.x+(ev.clientX-start.x)/state.scale+'px';el.style.top=pos.y+(ev.clientY-start.y)/state.scale+'px'}function up(){state.layout[state.ws+':'+state.canvas+':'+el.dataset.pid]={x:parseFloat(el.style.left),y:parseFloat(el.style.top)};window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up)}window.addEventListener('pointermove',move);window.addEventListener('pointerup',up)})})}
+function paraHTML(p,pos,tree){let ns=p.notes.map(n=>note(n)).filter(Boolean),open=state.expanded.has(p.id);return `<div class="para" data-pid="${p.id}" style="left:${pos.x}px;top:${pos.y}px"><div class="para-head"><div class="crumb">${esc(numberedPath(p.section))}</div><strong>¶ ${esc(p.title)}</strong><button class="expand" title="展開/折りたたみ">${open?'▾':'▸'}</button></div>${open?`<div class="notes">${ns.map((n,i)=>`<div class="notechip" data-nid="${n.id}"><b><span style="display:inline;color:#9fabc0">${i+1}.</span> ${esc(n.title)}</b><span>${esc(n.body.replace(/\[\[|\]\]/g,''))}</span></div>`).join('')||'<div class="helper">メモなし</div>'}</div>`:`<div class="notes"><div class="helper">${ns.length} notes · ${esc(ns.map(n=>n.body).join(' ').slice(0,90))}…</div></div>`}<div class="para-footer">${ns.length} notes · ${tree?'Auto layout':'Drag header to move'}</div></div>`}
+function applyTransform(){let world=$('#world');if(world)world.style.transform=`translate(${state.pan.x}px,${state.pan.y}px) scale(${state.scale})`;let z=$('#zoomtext');if(z)z.textContent=Math.round(state.scale*100)+'%'}
+function zoomCenter(f,x,y){let st=$('#stage');if(!st)return;let r=st.getBoundingClientRect();let cx=x??r.width/2,cy=y??r.height/2;let old=state.scale;let next=Math.min(4,Math.max(.1,old*f));state.pan.x=cx-(cx-state.pan.x)*next/old;state.pan.y=cy-(cy-state.pan.y)*next/old;state.scale=next;applyTransform()}
+function bindStage(){let el=$('#stage');el.onwheel=e=>{e.preventDefault();let r=el.getBoundingClientRect();zoomCenter(e.deltaY<0?1.11:1/1.11,e.clientX-r.left,e.clientY-r.top)};el.addEventListener('pointerdown',e=>{if(e.target.closest('.para')||e.button!==0)return;let orig={...state.pan},start={x:e.clientX,y:e.clientY};el.classList.add('panning');function move(ev){state.pan={x:orig.x+ev.clientX-start.x,y:orig.y+ev.clientY-start.y};applyTransform()}function up(){el.classList.remove('panning');window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up)}window.addEventListener('pointermove',move);window.addEventListener('pointerup',up)});el.addEventListener('contextmenu',e=>{e.preventDefault();context(e.clientX,e.clientY,'canvas')})}
+function renderInspector(){let el=$('#inspector');if(!el)return;if(state.global){el.innerHTML='<h3>Global Search</h3><p class="muted">全ワークスペースのメモを検索できます。</p>';return}let n=note(state.selection)||ws().notes[0];if(!n){el.innerHTML='<h3>No note selected</h3>';return}let p=pFor(n.id);let backlinks=ws().notes.filter(x=>x.id!==n.id&&x.body.includes('[['+n.title+']]'));let links=[...n.body.matchAll(/\[\[([^\]]+)\]\]/g)].map(x=>x[1]);let inner;inner=`<h3>✎ Note Editor</h3><div class="helper">Markdown · Auto-refresh mock</div><label>Title</label><input class="simple-input" id="titleedit" value="${esc(n.title)}"><label>Body · Markdown</label><textarea id="bodyedit" spellcheck="false">${esc(n.body)}</textarea><div style="display:flex;gap:7px;margin-top:10px"><button class="primary" id="saveedit">Save note</button><button class="light-btn" id="citeinside">❞ Citation</button></div><label>Tags</label><input class="simple-input" id="tagedit" value="${esc(n.tags.join(', '))}"><label>Outline</label><div class="helper">${esc(p?rootOf(p.section)+' › '+p.title:'Unassigned')}</div><label>WikiLinks (${links.length})</label><div class="links">${links.map(t=>`<button class="link" data-link="${esc(t)}">↗ ${esc(t)}</button>`).join('')||'<span class="helper">リンクなし</span>'}</div><label>Backlinks (${backlinks.length})</label><div class="links">${backlinks.map(t=>`<button class="link" data-note="${t.id}">↙ ${esc(t.title)}</button>`).join('')||'<span class="helper">被リンクなし</span>'}</div><p class="helper" style="margin-top:23px">WikiLink: [[メモタイトル]]<br>Citation: [@Smith2024]</p>`;el.innerHTML=inner;$('#saveedit').onclick=saveEditor;$('#citeinside').onclick=()=>openCitation();el.querySelectorAll('[data-note]').forEach(b=>b.onclick=()=>{state.selection=b.dataset.note;state.inspectorTab='Note';renderInspector()});el.querySelectorAll('[data-link]').forEach(b=>b.onclick=()=>{let target=ws().notes.find(n=>n.title===b.dataset.link);if(target){state.selection=target.id;state.inspectorTab='Note';renderInspector();toast('Opened: '+target.title)}else toast('リンク先が見つかりません')});$('#bodyedit').onkeydown=e=>{if(e.key==='['&&e.target.value[e.target.selectionStart-1]==='['){setTimeout(()=>toast('WikiLink補完：タイトルを入力してください（モック）'),0)}}}
+function referencePanelHTML(){return `<h3>Reference</h3><div class="helper">Workspace bibliography</div><label>Search</label><input class="simple-input" id="insrefq" placeholder="著者・タイトル・引用キー"><div id="insrefs" class="ins-ref-list"></div>`}
+function bindReferencePanel(el){let refs=ws().references;function draw(){let q=$('#insrefq').value.toLowerCase();$('#insrefs').innerHTML=refs.filter(r=>Object.values(r).join(' ').toLowerCase().includes(q)).map(r=>`<button class="refchoice" data-key="${esc(r.key)}"><b>${esc(r.author)} (${esc(r.year)})</b>${esc(r.title)}<br><small>@${esc(r.key)}</small></button>`).join('')||'<div class="empty">No references</div>';el.querySelectorAll('.refchoice').forEach(b=>b.onclick=()=>{let n=note(state.selection);if(n){n.body+=(n.body?' ':'')+'[@'+b.dataset.key+']';state.inspectorTab='Note';renderInspector();toast('引用を挿入しました')}})}$('#insrefq').oninput=draw;draw()}
+function manuscriptData(w){let ms=generateManuscript(w),numbers=numberedSections(w);return ms.flatMap(group=>{let s=group.section,arr=[{type:'heading',level:2,text:numbers[s.id]}];const direct=group.paras.filter(p=>p.sectionId===s.id);arr.push(...direct.map(p=>({type:'paragraph',...p})));for(const sub of s.subs){arr.push({type:'heading',level:3,text:numbers[sub.id]});arr.push(...group.paras.filter(p=>p.sectionId===sub.id).map(p=>({type:'paragraph',...p})))}return arr})}
+function manuscriptHTML(w){return manuscriptData(w).map(e=>e.type==='heading'?`<h${e.level}>${esc(e.text)}</h${e.level}>`:`<p title="${esc(e.title)}">${esc(e.body)}</p>`).join('')}
+function manuscriptMarkdown(w){return manuscriptData(w).map(e=>e.type==='heading'?'#'.repeat(e.level-1)+' '+e.text:e.body).join('\n\n')}
+function manuscriptPanelHTML(){return `<h3>Manuscript Preview</h3><div class="helper">Outlineと同期した右側プレビュー</div><div style="display:flex;gap:8px;margin:12px 0 10px"><button class="light-btn" id="mscopy">⧉ Copy</button><button class="light-btn" id="msdownload">↓ Export .md</button><button class="primary" id="msfullscreen">⤢ Fullscreen</button></div><article class="manuscript side-manuscript">${manuscriptHTML(ws())}</article>`}
+function copyManuscript(){navigator.clipboard?.writeText(manuscriptMarkdown(ws())).then(()=>toast('Markdownをコピーしました')).catch(()=>toast('クリップボードを利用できません'))}
+function openManuscriptFullscreen(){let back=document.createElement('div');back.className='modalback';back.innerHTML=`<div class="modal modal-wide"><div style="display:flex;align-items:center;justify-content:space-between"><h2>Manuscript</h2><button class="tool" id="closemodal">✕</button></div><article class="manuscript">${manuscriptHTML(ws())}</article></div>`;document.body.appendChild(back);$('#closemodal').onclick=()=>back.remove();back.onclick=e=>{if(e.target===back)back.remove()}}
+function saveEditor(){let w=ws(),n=note(state.selection),title=$('#titleedit').value.trim(),body=$('#bodyedit').value,tags=$('#tagedit').value.split(',').map(t=>t.trim()).filter(Boolean);if(!title)return toast('タイトルは必須です');if(w.notes.some(x=>x.id!==n.id&&x.title.toLocaleLowerCase()===title.toLocaleLowerCase()))return toast('同じタイトルのメモがあります');if(title!==n.title){let old=n.title;w.notes.forEach(x=>x.body=x.body.split('[['+old+']]').join('[['+title+']]'))}n.title=title;n.body=body;n.tags=tags;toast('保存しました（モック内のデータのみ）');refreshManuscript();if(state.tab==='Canvas')paintWorld();else renderContent();renderInspector();bindSidebar()}
+function outline(c){
+ c.innerHTML=`<div class="outline-workspace ${state.manuscriptSplit?'split-active':''}"><section class="outline-primary"><div class="outline-header"><div><h1 class="heading">Outline</h1><p class="subheading">Drag to reorder sections, paragraphs and notes. Double-click a note to edit it.</p></div></div><div class="viewbar outline-sticky"><button class="light-btn" id="expandall">Expand all</button><button class="light-btn" id="collapseall">Collapse all</button><button class="light-btn" id="addpara">＋ Paragraph</button><div class="grow"></div><button class="light-btn ${state.manuscriptSplit?'active-action':''}" id="openmspanel">${state.manuscriptSplit?'✕ Close preview':'◧ Open Manuscript'}</button><button class="light-btn" id="openmsfull">⤢ Fullscreen</button></div><div id="outlinebody"></div></section>${state.manuscriptSplit?`<section class="manuscript-split"><div class="manuscript-split-header"><strong>Manuscript</strong><div class="grow"></div><button class="light-btn" id="splitrefresh" title="Refresh manuscript">↻</button><button class="light-btn" id="splitcopy">Copy</button><button class="light-btn" id="splitexport">Export .md</button><button class="light-btn" id="splitfullscreen">⤢</button></div><div class="manuscript-scroll"><article class="manuscript manuscript-inline">${manuscriptHTML(ws())}</article></div></section>`:''}</div>`;
+ drawOutline();
+ $('#addpara').onclick=()=>addGroup();
+ $('#expandall').onclick=()=>{state.collapsed.clear();drawOutline()};
+ $('#collapseall').onclick=()=>{let w=ws();state.collapsed=new Set([...w.sections.map(s=>'sec:'+s.id),...w.sections.flatMap(s=>s.subs.map(sub=>'sub:'+sub.id)),...w.paragraphs.map(p=>'para:'+p.id)]);drawOutline()};
+ $('#openmspanel').onclick=()=>{state.manuscriptSplit=!state.manuscriptSplit;outline(c)};
+ $('#openmsfull').onclick=()=>openManuscriptFullscreen();
+ if(state.manuscriptSplit){$('#splitrefresh').onclick=refreshManuscript;$('#splitcopy').onclick=copyManuscript;$('#splitexport').onclick=()=>download('FACET_manuscript.md',manuscriptMarkdown(ws()));$('#splitfullscreen').onclick=()=>openManuscriptFullscreen()}
+}
+function refreshManuscript(){let body=document.querySelector('.manuscript-inline');if(body)body.innerHTML=manuscriptHTML(ws())}
+function outlineTreeHTML(){const w=ws(),nums=numberedSections(w);const isCol=k=>state.collapsed.has(k);const noteRows=p=>p.notes.map((id,i)=>{const n=w.notes.find(n=>n.id===id);return `<div class="outline-node outline-note" draggable="true" data-kind="note" data-id="${esc(id)}" data-parent="${esc(p.id)}" title="メモをドラッグ"><span class="drag-handle">⠿</span><span class="outline-icon">▤</span><span class="outline-label">${esc(n?.title||'Missing note')}</span><span class="outline-meta">${i+1}</span></div>`}).join('');const paragraphRows=sec=>w.paragraphs.filter(p=>p.section===sec).map(p=>{let col=isCol('para:'+p.id);return `<div class="outline-paragraph-block"><div class="outline-node outline-paragraph" draggable="true" data-kind="paragraph" data-id="${esc(p.id)}" title="Paragraphをドラッグ"><button class="collapse-toggle" data-toggle="para:${esc(p.id)}">${col?'▸':'▾'}</button><span class="drag-handle">⠿</span><span class="outline-icon">¶</span><span class="outline-label">${esc(p.title)}</span><span class="outline-meta">${p.notes.length} notes</span></div>${col?'':`<div class="outline-note-list">${noteRows(p)}</div>`}</div>`}).join('');let html='';for(const sec of w.sections){const count=w.paragraphs.filter(p=>p.section===sec.id||sec.subs.some(sub=>sub.id===p.section)).length;let secCol=isCol('sec:'+sec.id);html+=`<div class="outline-section-block"><div class="outline-node outline-section" draggable="true" data-kind="section" data-id="${esc(sec.id)}"><button class="collapse-toggle" data-toggle="sec:${esc(sec.id)}">${secCol?'▸':'▾'}</button><span class="drag-handle">⠿</span><strong class="outline-label">${esc(nums[sec.id])}</strong><span class="outline-meta">${count} paragraphs</span></div>`;if(!secCol){html+=`<div class="outline-section-content">${paragraphRows(sec.id)}`;for(const sub of sec.subs){let subCol=isCol('sub:'+sub.id);html+=`<div class="outline-subsection-block"><div class="outline-node outline-subsection" draggable="true" data-kind="subsection" data-id="${esc(sub.id)}" data-parent="${esc(sec.id)}"><button class="collapse-toggle" data-toggle="sub:${esc(sub.id)}">${subCol?'▸':'▾'}</button><span class="drag-handle">⠿</span><strong class="outline-label">${esc(nums[sub.id])}</strong></div>${subCol?'':`<div class="outline-section-content">${paragraphRows(sub.id)}</div>`}</div>`}html+='</div>'}html+='</div>'}const unassigned=w.notes.filter(n=>!pFor(n.id)&&!n.archived);html+=`<div class="outline-unassigned"><div class="outline-unassigned-title">Unassigned <span class="outline-meta">${unassigned.length} notes · Outline未配置</span></div>${unassigned.map(n=>`<div class="outline-node outline-note" draggable="true" data-kind="note" data-id="${n.id}" data-parent="unassigned"><span class="drag-handle">⠿</span><span class="outline-icon">▤</span><span class="outline-label">${esc(n.title)}</span></div>`).join('')}</div>`;return html}
+function moveRelative(array,source,target,after){const si=array.findIndex(x=>x===source||x.id===source),ti=array.findIndex(x=>x===target||x.id===target);if(si<0||ti<0||si===ti)return false;const [item]=array.splice(si,1);let dst=array.findIndex(x=>x===target||x.id===target);array.splice(dst+(after?1:0),0,item);return true}
+function applyOutlineMove(from,to,after){const w=ws(),{kind:sk,id:sid}=from,{kind:tk,id:tid}=to;if(sk===tk&&sid===tid)return false;
+ if(sk==='section'&&tk==='section')return moveRelative(w.sections,sid,tid,after);
+ if(sk==='subsection'&&(tk==='subsection'||tk==='section')){const owner=w.sections.find(s=>s.subs.some(x=>x.id===sid)),sub=owner?.subs.find(x=>x.id===sid);if(!sub)return false;const dest=tk==='section'?w.sections.find(s=>s.id===tid):w.sections.find(s=>s.subs.some(x=>x.id===tid));if(!dest)return false;owner.subs.splice(owner.subs.indexOf(sub),1);const idx=tk==='section'?dest.subs.length:dest.subs.findIndex(x=>x.id===tid)+(after?1:0);dest.subs.splice(idx,0,sub);return true}
+ if(sk==='paragraph'&&(tk==='paragraph'||tk==='section'||tk==='subsection')){const p=w.paragraphs.find(x=>x.id===sid);if(!p)return false;const dest=tk==='paragraph'?w.paragraphs.find(x=>x.id===tid):null;if(tk==='paragraph'&&!dest)return false;const nextSection=dest?dest.section:tid;p.section=nextSection;w.paragraphs.splice(w.paragraphs.indexOf(p),1);if(dest){const idx=w.paragraphs.indexOf(dest)+(after?1:0);w.paragraphs.splice(idx,0,p)}else{let ix=w.paragraphs.findLastIndex(x=>x.section===nextSection);w.paragraphs.splice(ix+1,0,p)}return true}
+ if(sk==='note'&&(tk==='note'||tk==='paragraph')){const src=w.paragraphs.find(p=>p.notes.includes(sid));let dest=tk==='paragraph'?w.paragraphs.find(p=>p.id===tid):w.paragraphs.find(p=>p.notes.includes(tid));if(!dest)return false;if(src)src.notes.splice(src.notes.indexOf(sid),1);if(tk==='paragraph')dest.notes.push(sid);else{const idx=dest.notes.indexOf(tid);dest.notes.splice(idx+(after?1:0),0,sid)}state.selection=sid;return true}
+ return false}
+function bindOutlineDnD(root,refresh){if(!root)return;let from=null;root.querySelectorAll('.outline-node[draggable]').forEach(el=>{
+ el.addEventListener('dragstart',e=>{from={kind:el.dataset.kind,id:el.dataset.id};state.dragId=el.dataset.id;e.dataTransfer.setData('text/plain',el.dataset.id);e.dataTransfer.effectAllowed='move';el.classList.add('outline-dragging')});
+ el.addEventListener('dragend',()=>{el.classList.remove('outline-dragging');root.querySelectorAll('.drop-before,.drop-after,.drop-inside').forEach(x=>x.classList.remove('drop-before','drop-after','drop-inside'))});
+ el.addEventListener('dragover',e=>{if(!from||from.id===el.dataset.id)return;e.preventDefault();e.stopPropagation();const r=el.getBoundingClientRect(),v=(e.clientY-r.top)/r.height;el.classList.remove('drop-before','drop-after','drop-inside');el.classList.add((el.dataset.kind==='section'||el.dataset.kind==='subsection'||el.dataset.kind==='paragraph')&&v>.25&&v<.75?'drop-inside':v<.5?'drop-before':'drop-after')});
+ el.addEventListener('dragleave',e=>{if(!el.contains(e.relatedTarget))el.classList.remove('drop-before','drop-after','drop-inside')});
+ el.addEventListener('drop',e=>{e.preventDefault();e.stopPropagation();if(!from)return;const r=el.getBoundingClientRect(),rel=(e.clientY-r.top)/r.height;const isContainer=['section','subsection','paragraph'].includes(el.dataset.kind);const isInside=isContainer&&rel>.25&&rel<.75;const after=isInside||rel>=.5;const to={kind:el.dataset.kind,id:el.dataset.id};const changed=applyOutlineMove(from,to,after);from=null;root.querySelectorAll('.drop-before,.drop-after,.drop-inside').forEach(x=>x.classList.remove('drop-before','drop-after','drop-inside'));if(changed){refresh();renderInspector();toast('Outlineの構造を更新しました')}else toast('この位置には移動できません')});
+ el.addEventListener('click',()=>{if(el.dataset.kind==='note'){state.selection=el.dataset.id;renderInspector()}else if(el.dataset.kind==='paragraph'){state.selectedParagraph=el.dataset.id;state.selection=para(el.dataset.id)?.notes[0]||state.selection;renderInspector()}})
+ })}
+function drawOutline(){const target=$('#outlinebody');if(!target)return;target.innerHTML=outlineTreeHTML();document.querySelectorAll('.collapse-toggle').forEach(b=>b.onclick=e=>{e.stopPropagation();let k=b.dataset.toggle;state.collapsed.has(k)?state.collapsed.delete(k):state.collapsed.add(k);drawOutline()});bindOutlineDnD(target,()=>{drawOutline();refreshManuscript()});target.querySelectorAll('.outline-note').forEach(el=>el.ondblclick=e=>{e.stopPropagation();state.selection=el.dataset.id;state.inspectorTab='Note';renderInspector();openInlineNote(el)})}
+function openInlineNote(el){let id=el.dataset.id,n=note(id);if(!n)return;document.querySelector('.inline-note-editor')?.remove();let panel=document.createElement('div');panel.className='inline-note-editor';panel.innerHTML=`<div class="helper">Edit note directly in Outline · Markdown</div><input class="simple-input inline-title" value="${esc(n.title)}" aria-label="Note title"><textarea class="inline-body" aria-label="Note body">${esc(n.body)}</textarea><div class="inline-actions"><button class="primary inline-save">Save note</button><button class="light-btn inline-cancel">Cancel</button></div>`;el.insertAdjacentElement('afterend',panel);el.scrollIntoView({block:'nearest'});panel.querySelector('.inline-cancel').onclick=()=>panel.remove();panel.querySelector('.inline-save').onclick=()=>{let title=panel.querySelector('.inline-title').value.trim(),body=panel.querySelector('.inline-body').value;if(!title)return toast('タイトルは必須です');if(ws().notes.some(x=>x.id!==id&&x.title.toLowerCase()===title.toLowerCase()))return toast('同一タイトルがあります');if(title!==n.title){let old=n.title;ws().notes.forEach(x=>x.body=x.body.split('[['+old+']]').join('[['+title+']]'))}n.title=title;n.body=body;drawOutline();renderInspector();refreshManuscript();toast('Outlineでメモを更新しました')}}
+function cards(c){let w=ws();c.innerHTML=`<div class="listview"><h1 class="heading">Cards</h1><p class="subheading">メモ一覧 · タグ・章節所属・作成順で整理</p><div class="searchline"><input class="simple-input" id="q" placeholder="Search notes, tags, links…" value="${esc(state.search)}"><select class="simple-select" id="groupby"><option value="tag">Group: Tags</option><option value="outline">Group: Outline</option><option value="none">Group: None</option></select><select class="simple-select" id="section-filter"><option value="all">Outline: すべて</option><option value="unassigned">Unassigned</option>${w.sections.map(s=>`<option value="${s.id}">${esc(numberedSections(w)[s.id])}</option>${s.subs.map(sub=>`<option value="${sub.id}">　${esc(numberedSections(w)[sub.id])}</option>`).join('')}`).join('')}</select><select class="simple-select" id="sortby"><option value="created">Oldest first</option><option value="newest">Newest first</option><option value="title">Title</option></select></div><div id="cardsbody"></div></div>`;$('#groupby').value=state.groupBy;$('#sortby').value=state.sort;$('#section-filter').value=state.cardSection;$('#q').oninput=e=>{state.search=e.target.value;drawCards()};$('#groupby').onchange=e=>{state.groupBy=e.target.value;drawCards()};$('#sortby').onchange=e=>{state.sort=e.target.value;drawCards()};$('#section-filter').onchange=e=>{state.cardSection=e.target.value;drawCards()};drawCards()}
+function drawCards(){let ns=ws().notes.filter(n=>{if(n.archived)return false;let p=pFor(n.id),sec=p?.section;let match=state.cardSection==='all'||(state.cardSection==='unassigned'?!p:sec===state.cardSection||ws().sections.some(s=>s.id===state.cardSection&&s.subs.some(sub=>sub.id===sec)));return match&&(n.title+' '+n.body+' '+n.tags.join(' ')).toLowerCase().includes(state.search.toLowerCase())});ns.sort((a,b)=>state.sort==='title'?a.title.localeCompare(b.title):state.sort==='newest'?b.created-a.created:a.created-b.created);let groups={};for(let n of ns){let keys=state.groupBy==='tag'?(n.tags.length?n.tags:['Untagged']):state.groupBy==='outline'?[pFor(n.id)?rootOf(pFor(n.id).section):'Unassigned']:['All Notes'];for(let k of keys)(groups[k]??=[]).push(n)}let h=Object.entries(groups).map(([k,arr])=>`<h3 class="pgroup-title">${esc(k)} <span class="muted" style="font-size:12px">${arr.length}</span></h3><div class="cardgrid">${arr.map(n=>noteCard(n)).join('')}</div>`).join('')||'<div class="empty">該当するメモはありません</div>';$('#cardsbody').innerHTML=h;document.querySelectorAll('.memocard[data-nid]').forEach(el=>el.onclick=()=>{state.selection=el.dataset.nid;renderInspector()})}
+function noteCard(n,workspace){return `<div class="memocard" data-nid="${n.id}"><h4>${esc(n.title)}</h4>${workspace?`<div class="helper">${esc(workspace)}</div>`:''}<p>${esc(n.body.replace(/\[\[|\]\]/g,'').slice(0,95))}…</p>${n.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>`}
+function generateManuscript(w){return w.sections.map(s=>{let ps=w.paragraphs.filter(p=>p.section===s.id||s.subs.some(x=>x.id===p.section));return {section:s,paras:ps.map(p=>{let bodies=p.notes.map(id=>w.notes.find(n=>n.id===id)?.body||'').map(b=>b.split(/\n/).filter(x=>!/^\s*\[\[[^\]]+\]\]\s*$/.test(x)).join(' ').replace(/\[\[([^\]]+)\]\]/g,'$1').trim()).filter(Boolean);return {title:p.title,body:bodies.join(' '),sectionId:p.section}})}})}
+function manuscript(c){let html=manuscriptHTML(ws());let md=manuscriptMarkdown(ws());c.innerHTML=`<div class="listview"><div class="viewbar"><h1 class="heading" style="margin:0">Manuscript</h1><div class="grow"></div><button id="copyms" class="light-btn">⧉ Copy Markdown</button><button id="downloadms" class="primary">↓ Export .md</button></div><p class="subheading">プレビュー専用。章節番号はOutlineと連動。メモタイトル・Paragraphタイトル・WikiLinkは出力しません。</p><article class="manuscript">${html}</article></div>`;$('#copyms').onclick=()=>navigator.clipboard?.writeText(md).then(()=>toast('Markdownをコピーしました')).catch(()=>toast('クリップボードを利用できません'));$('#downloadms').onclick=()=>download('FACET_manuscript.md',md)}
+function references(c){let refs=ws().references;c.innerHTML=`<div class="listview"><h1 class="heading">Reference</h1><p class="subheading">WorkspaceごとのZotero BibTeXライブラリ（モックデータ）</p><div class="viewbar"><input class="simple-input" id="refq" placeholder="文献・著者・引用キーを検索…" style="max-width:450px"><button class="primary" id="insertref">❞ Insert Citation</button><button class="light-btn" id="importbib">↑ Import BibTeX</button></div><table class="table"><thead><tr><th>Author / Year</th><th>Title</th><th>Citation key</th></tr></thead><tbody id="reftable"></tbody></table></div>`;function draw(q=''){$('#reftable').innerHTML=refs.filter(r=>Object.values(r).join(' ').toLowerCase().includes(q.toLowerCase())).map(r=>`<tr><td>${esc(r.author)} (${esc(r.year)})</td><td>${esc(r.title)}<div class="helper">${esc(r.journal)}</div></td><td><code>[@${esc(r.key)}]</code></td></tr>`).join('')}draw();$('#refq').oninput=e=>draw(e.target.value);$('#insertref').onclick=openCitation;$('#importbib').onclick=()=>toast('モック：実際のBibTeX読込は実装時に接続します')}
+function globalCards(){let c=$('#content');let all=data.flatMap(w=>w.notes.map(n=>({...n,workspace:w.name,wsid:w.id})));c.innerHTML=`<div class="listview"><h1 class="heading">Global Cards</h1><p class="subheading">すべての論文ワークスペースのメモを横断表示</p><div class="searchline"><input class="simple-input" id="gq" placeholder="Search all notes…"><select class="simple-select" id="gws"><option value="all">All Workspaces</option>${data.map(w=>`<option value="${w.id}">${esc(w.name)}</option>`).join('')}</select></div><div id="globalbody"></div></div>`;function draw(){let q=$('#gq').value.toLowerCase(),v=$('#gws').value;let ns=all.filter(n=>(v==='all'||n.wsid===v)&&(n.title+' '+n.body+' '+n.tags.join(' ')).toLowerCase().includes(q));$('#globalbody').innerHTML=`<div class="cardgrid">${ns.map(n=>noteCard(n,n.workspace).replace('data-nid=',`data-wsid="${n.wsid}" data-nid=`)).join('')}</div>`;c.querySelectorAll('.memocard').forEach(el=>el.onclick=()=>{state.ws=el.dataset.wsid;state.selection=el.dataset.nid;state.global=false;state.tab='Cards';shell();toast('ワークスペースを切り替えました')})}$('#gq').oninput=draw;$('#gws').onchange=draw;draw();if($('#exitglobal'))$('#exitglobal').onclick=()=>{state.global=false;state.tab='Cards';shell()}}
+function action(kind){if(kind==='global'){state.global=true;shell();return}if(kind==='cite'){openCitation();return}if(kind==='plus'){newNote();return}if(kind==='group'){addGroup();return}if(kind==='multi'){state.multi=!state.multi;shell();toast('複数選択モード: '+(state.multi?'ON':'OFF'));return}if(kind==='copy'){let n=note(state.selection);if(n){state.clip={...n};toast('メモをコピーしました')}return}if(kind==='paste'){if(!state.clip)return toast('コピーされたメモがありません');let b=state.clip,title=b.title+' (copy)',i=2;while(ws().notes.some(n=>n.title===title))title=b.title+' (copy '+i+++')';let id='x'+Date.now();ws().notes.push({...b,title,id,created:Date.now()});state.selection=id;shell();toast('独立したメモを作成しました');return}if(kind==='archive'){let n=note(state.selection);if(!n)return;n.archived=!n.archived;toast(n.archived?'メモをアーカイブしました':'アーカイブを解除しました');shell();return}if(kind==='delete'){let n=note(state.selection);if(!n)return;if(!confirm('メモ「'+n.title+'」を削除しますか？（モック内のみ）'))return;ws().paragraphs.forEach(p=>p.notes=p.notes.filter(id=>id!==n.id));ws().notes=ws().notes.filter(x=>x.id!==n.id);state.selection=ws().notes[0]?.id;shell();toast('メモを削除しました（モック内のみ）');return}}
+function newNote(){let title=prompt('新規メモのタイトル');if(!title||!title.trim())return;title=title.trim();if(ws().notes.some(n=>n.title.toLowerCase()===title.toLowerCase()))return toast('同一タイトルは使用できません');let id='new'+Date.now();ws().notes.push({id,title,body:'',tags:[],created:Date.now()});state.selection=id;state.tab='Canvas';state.inspectorTab='Note';shell();toast('未配置メモを作成しました')}
+function addGroup(){let title=prompt('Paragraph Groupのタイトル');if(!title||!title.trim())return;let sec=state.scope!=='all'?state.scope:ws().sections[0]?.id;let id='p'+Date.now();ws().paragraphs.push({id,title:title.trim(),section:sec,notes:[],x:120+Math.random()*420,y:160+Math.random()*340});state.expanded.add(id);state.tab='Canvas';shell();toast('Paragraph Groupを作成しました')}
+function openCitation(){let refs=ws().references;let back=document.createElement('div');back.className='modalback';back.innerHTML=`<div class="modal"><div style="display:flex;align-items:center;justify-content:space-between"><h2>Insert Citation</h2><button class="tool" id="closemodal">✕</button></div><input class="simple-input" id="citationsearch" placeholder="著者 / タイトル / Citation key を検索" autofocus><div class="choices" id="citationchoices"></div><div class="helper" style="margin-top:10px">クリックすると選択中のメモの本文末尾に挿入します。</div></div>`;document.body.appendChild(back);$('#closemodal').onclick=()=>back.remove();back.onclick=e=>{if(e.target===back)back.remove()};function draw(){let q=$('#citationsearch').value.toLowerCase();$('#citationchoices').innerHTML=refs.filter(r=>Object.values(r).join(' ').toLowerCase().includes(q)).map(r=>`<button class="refchoice" data-key="${esc(r.key)}"><b>${esc(r.author)} (${esc(r.year)})</b>${esc(r.title)}<br><small>@${esc(r.key)}</small></button>`).join('');back.querySelectorAll('.refchoice').forEach(b=>b.onclick=()=>{let n=note(state.selection);if(n){n.body+=(n.body?' ':'')+'[@'+b.dataset.key+']';back.remove();renderInspector();if(state.tab==='Canvas')paintWorld();toast('引用を挿入しました')}else toast('メモを選択してください')})}$('#citationsearch').oninput=draw;draw();$('#citationsearch').focus()}
+function context(x,y,type){document.querySelector('.ctx')?.remove();let el=document.createElement('div');el.className='ctx';el.style.left=Math.min(x,innerWidth-220)+'px';el.style.top=Math.min(y,innerHeight-230)+'px';el.innerHTML=`<button data-c="note">＋ New Note</button><button data-c="para">▣ Paragraph Group</button><button data-c="citation">❞ Insert Citation</button><button data-c="fit">⤢ Fit View</button>`;document.body.appendChild(el);el.querySelectorAll('button').forEach(b=>b.onclick=()=>{el.remove();if(b.dataset.c==='note')newNote();if(b.dataset.c==='para')addGroup();if(b.dataset.c==='citation')openCitation();if(b.dataset.c==='fit')$('#fit-all')?.click()});setTimeout(()=>document.addEventListener('pointerdown',function outside(e){if(!el.contains(e.target)){el.remove();document.removeEventListener('pointerdown',outside)}},{capture:true}),10)}
+function download(filename,txt){let url=URL.createObjectURL(new Blob([txt],{type:'text/markdown;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+shell();window.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelector('.ctx')?.remove();if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();if($('#bodyedit'))saveEditor()}});
+})();
+</script></body></html>
