@@ -503,6 +503,35 @@ describe('workspace manager & settings (DAT-06, UI-14)', () => {
     await manager.dispose()
   })
 
+  it('imports a Markdown file added externally while the workspace is open', async () => {
+    const events: Array<{ type: string; message?: string }> = []
+    const manager = new WorkspaceManager(
+      SettingsStore.forDir(path.join(tmp, 'ud')),
+      (e) => events.push(e as { type: string; message?: string }),
+      { watch: false },
+    )
+    await manager.init()
+    const dir = path.join(tmp, 'Vault')
+    await mkdir(dir)
+    const a = (await manager.addWorkspace(dir, 'Zao')).workspace!
+    const s = manager.session(a.id)!
+    await writeFile(path.join(s.vaultPath, 'notes', 'new.md'), '# Added outside\n\nmagma recharge')
+    await s.handleFsChange('notes/new.md') // what the watcher calls on "add"
+    const added = Object.values(s.state.notes).find((n) => n.title === 'Added outside')
+    expect(added?.body).toBe('magma recharge')
+    expect(events.some((e) => e.type === 'reloaded' && e.message?.includes('取り込みました'))).toBe(true)
+    const index = JSON.parse(await readFile(path.join(s.vaultPath, 'notes-index.json'), 'utf8'))
+    expect(index.notes[added!.id].file).toBe('notes/new.md')
+    expect(manager.searchAll('recharge').map((h) => h.noteId)).toContain(added!.id)
+    // Files below notes/ subfolders are not notes and do not trigger a reload.
+    const before = events.length
+    await mkdir(path.join(s.vaultPath, 'notes', 'sub'))
+    await writeFile(path.join(s.vaultPath, 'notes', 'sub', 'x.md'), '# X')
+    await s.handleFsChange('notes/sub/x.md')
+    expect(events.length).toBe(before)
+    await manager.dispose()
+  })
+
   it('searches across workspaces (Japanese and English) and copies notes independently', async () => {
     const manager = new WorkspaceManager(SettingsStore.forDir(path.join(tmp, 'ud')), () => undefined, {
       watch: false,

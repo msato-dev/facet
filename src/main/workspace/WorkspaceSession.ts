@@ -216,7 +216,11 @@ export class WorkspaceSession {
     let next = this.state
     for (const rel of noteRels) {
       const id = this.repo.noteIdOfFile(rel)
-      if (!id) continue
+      if (!id) {
+        // A Markdown file FACET does not know yet: reconcile like on open (import it with an id).
+        await this.fullReload('外部で追加されたメモを取り込みました')
+        return
+      }
       const fresh = await this.repo.reloadNote(id)
       const cur = next.notes[id]
       if (!fresh || !cur) {
@@ -263,7 +267,9 @@ export class WorkspaceSession {
         return
       }
       const tracked = [FILES.project, FILES.index, FILES.structure, FILES.canvas] as string[]
-      const isNote = rel.startsWith(`${FILES.notesDir}/`) && rel.toLowerCase().endsWith('.md')
+      // Notes are the .md files directly under notes/ (the same set load() reads).
+      const isNote =
+        /^[^/]+\.md$/i.test(rel.slice(FILES.notesDir.length + 1)) && rel.startsWith(`${FILES.notesDir}/`)
       if (!isNote && !tracked.includes(rel)) return
       if (!(await this.repo.isExternallyChanged(rel).catch(() => true))) return
       await this.absorbExternalChanges([rel])
