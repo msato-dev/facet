@@ -9,7 +9,11 @@ describe('undo/redo', () => {
   it('undoes and redoes a structural move', () => {
     const { state, ctx, ids } = sampleWorkspace()
     const stack = new UndoStack()
-    const r = applyCommand(state, { type: 'note.move', id: ids.n6, target: { kind: 'group', id: ids.p5, position: 'inside' } }, ctx)
+    const r = applyCommand(
+      state,
+      { type: 'note.move', id: ids.n6, target: { kind: 'group', id: ids.p5, position: 'inside' } },
+      ctx,
+    )
     if (!r.ok) throw new Error()
     stack.record(state, r.state, 'move')
     const u = stack.undo(r.state)
@@ -26,7 +30,11 @@ describe('undo/redo', () => {
     const r = applyCommand(state, { type: 'note.rename', id: ids.n4, title: 'Renamed' }, ctx)
     if (!r.ok) throw new Error()
     stack.record(state, r.state, 'rename')
-    const edit = applyCommand(r.state, { type: 'note.updateBody', id: ids.n3, body: 'changed', baseRev: null }, ctx)
+    const edit = applyCommand(
+      r.state,
+      { type: 'note.updateBody', id: ids.n3, body: 'changed', baseRev: null },
+      ctx,
+    )
     if (!edit.ok) throw new Error()
     expect(stack.undo(edit.state).ok).toBe(false)
     expect(edit.state.notes[ids.n3].body).toBe('changed')
@@ -55,7 +63,15 @@ describe('undo/redo', () => {
 
 describe('search tokenizer', () => {
   it('splits Latin words and CJK bigrams', () => {
-    expect(tokenize('Magma recharge マグマ溜まり')).toEqual(['magma', 'recharge', 'マグ', 'グマ', 'マ溜', '溜ま', 'まり'])
+    expect(tokenize('Magma recharge マグマ溜まり')).toEqual([
+      'magma',
+      'recharge',
+      'マグ',
+      'グマ',
+      'マ溜',
+      '溜ま',
+      'まり',
+    ])
     expect(tokenize('Ｍａｇｍａ')).toEqual(['magma'])
   })
   it('matches substrings for in-workspace filtering', () => {

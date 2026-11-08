@@ -4,8 +4,11 @@ export function serializeNote(title: string, body: string): string {
   return body ? `# ${title}\n\n${body}` : `# ${title}\n`
 }
 
-export function parseNoteFile(content: string, fallbackTitle: string): { title: string; body: string; hasTitle: boolean } {
-  const text = content.replace(/^﻿/, '').replace(/\r\n?/g, '\n')
+export function parseNoteFile(
+  content: string,
+  fallbackTitle: string,
+): { title: string; body: string; hasTitle: boolean } {
+  const text = content.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n')
   const nl = text.indexOf('\n')
   const first = nl === -1 ? text : text.slice(0, nl)
   const m = /^#[ \t]+(.+?)[ \t]*#*[ \t]*$/.exec(first)

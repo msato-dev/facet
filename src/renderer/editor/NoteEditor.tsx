@@ -56,7 +56,10 @@ function TagsField({ noteId }: { noteId: string }) {
   const [value, setValue] = useState(joined)
   useEffect(() => setValue(joined), [joined, noteId])
   const commit = () => {
-    const next = value.split(/[,、]/).map((t) => t.trim()).filter(Boolean)
+    const next = value
+      .split(/[,、]/)
+      .map((t) => t.trim())
+      .filter(Boolean)
     if (next.join(', ') !== joined) void exec({ type: 'note.setTags', id: noteId, tags: next })
   }
   return (
@@ -77,7 +80,10 @@ export function NoteEditor() {
   const noteId = useApp((s) => s.selectedNoteId)
   const snapshot = useApp((s) => s.snapshot)
   const note = noteId ? snapshot?.state.notes[noteId] : undefined
-  const info = useMemo(() => (note && snapshot ? linkInfo(snapshot.state.notes, note.id) : null), [note, snapshot])
+  const info = useMemo(
+    () => (note && snapshot ? linkInfo(snapshot.state.notes, note.id) : null),
+    [note, snapshot],
+  )
 
   if (!snapshot || !note || !info) {
     return (
@@ -127,7 +133,9 @@ export function NoteEditor() {
             key={l.target}
             className={`link-chip ${l.noteId ? '' : 'broken'}`}
             title={l.noteId ? 'クリックで移動' : 'リンク切れ'}
-            onClick={() => (l.noteId ? selectNote(l.noteId) : toast(`リンク先「${l.target}」が見つかりません`, 'error'))}
+            onClick={() =>
+              l.noteId ? selectNote(l.noteId) : toast(`リンク先「${l.target}」が見つかりません`, 'error')
+            }
           >
             {l.noteId ? '↗' : '⚠'} {l.target}
           </button>

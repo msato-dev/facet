@@ -18,7 +18,15 @@ import { sectionBreadcrumb } from '../../shared/domain/numbering'
 import { findSection } from '../../shared/domain/structure'
 import type { GroupNode as GroupData } from '../../shared/domain/types'
 import { openContextMenu } from '../common/ContextMenu'
-import { copyNote, createGroup, createNote, deleteNotes, openCitation, pasteNote, toggleArchive } from '../store/actions'
+import {
+  copyNote,
+  createGroup,
+  createNote,
+  deleteNotes,
+  openCitation,
+  pasteNote,
+  toggleArchive,
+} from '../store/actions'
 import { confirmAction, exec, promptText, selectNote, toast, useApp } from '../store/store'
 import { freeLayout, treeLayout, GROUP_WIDTH, LOOSE_WIDTH } from './layout'
 
@@ -30,7 +38,9 @@ function preview(body: string): string {
 
 function NoteChip({ noteId, index, groupId }: { noteId: string; index: number; groupId: string }) {
   const note = useApp((s) => s.snapshot?.state.notes[noteId])
-  const selected = useApp((s) => (s.multiSelect ? s.selectedNoteIds.includes(noteId) : s.selectedNoteId === noteId))
+  const selected = useApp((s) =>
+    s.multiSelect ? s.selectedNoteIds.includes(noteId) : s.selectedNoteId === noteId,
+  )
   const [zone, setZone] = useState<'before' | 'after' | null>(null)
   if (!note) return null
   return (
@@ -58,7 +68,16 @@ function NoteChip({ noteId, index, groupId }: { noteId: string; index: number; g
         setZone(null)
         const id = e.dataTransfer.getData(NOTE_MIME)
         const r = e.currentTarget.getBoundingClientRect()
-        if (id && id !== noteId) void exec({ type: 'note.move', id, target: { kind: 'note', id: noteId, position: e.clientY < r.top + r.height / 2 ? 'before' : 'after' } })
+        if (id && id !== noteId)
+          void exec({
+            type: 'note.move',
+            id,
+            target: {
+              kind: 'note',
+              id: noteId,
+              position: e.clientY < r.top + r.height / 2 ? 'before' : 'after',
+            },
+          })
       }}
       onClick={(e) => {
         e.stopPropagation()
@@ -100,7 +119,13 @@ const GroupNodeView = memo(function GroupNodeView({ data }: NodeProps<Node<Group
         label: '⌫ Delete group (notes become Unassigned)',
         danger: true,
         run: async () => {
-          if (await confirmAction('Paragraph Groupを削除', `「${group.title}」を削除します。中のメモは未配置になります。`, { okLabel: '削除', danger: true }))
+          if (
+            await confirmAction(
+              'Paragraph Groupを削除',
+              `「${group.title}」を削除します。中のメモは未配置になります。`,
+              { okLabel: '削除', danger: true },
+            )
+          )
             await exec({ type: 'group.delete', id: group.id })
         },
       },
@@ -125,7 +150,8 @@ const GroupNodeView = memo(function GroupNodeView({ data }: NodeProps<Node<Group
         e.stopPropagation()
         setOver(false)
         const id = e.dataTransfer.getData(NOTE_MIME)
-        if (id) void exec({ type: 'note.move', id, target: { kind: 'group', id: group.id, position: 'inside' } })
+        if (id)
+          void exec({ type: 'note.move', id, target: { kind: 'group', id: group.id, position: 'inside' } })
       }}
     >
       <Handle type="target" position={Position.Top} className="hidden-handle" isConnectable={false} />
@@ -134,7 +160,12 @@ const GroupNodeView = memo(function GroupNodeView({ data }: NodeProps<Node<Group
           {crumb}
         </div>
         <strong>¶ {group.title}</strong>
-        <button className="expand nodrag" aria-label={expanded ? '折りたたむ' : '展開'} data-testid="group-expand" onClick={toggle}>
+        <button
+          className="expand nodrag"
+          aria-label={expanded ? '折りたたむ' : '展開'}
+          data-testid="group-expand"
+          onClick={toggle}
+        >
           {expanded ? '▾' : '▸'}
         </button>
       </div>
@@ -160,7 +191,9 @@ const GroupNodeView = memo(function GroupNodeView({ data }: NodeProps<Node<Group
 
 const LooseNoteView = memo(function LooseNoteView({ data }: NodeProps<Node<{ noteId: string }>>) {
   const note = useApp((s) => s.snapshot?.state.notes[data.noteId])
-  const selected = useApp((s) => (s.multiSelect ? s.selectedNoteIds.includes(data.noteId) : s.selectedNoteId === data.noteId))
+  const selected = useApp((s) =>
+    s.multiSelect ? s.selectedNoteIds.includes(data.noteId) : s.selectedNoteId === data.noteId,
+  )
   if (!note) return null
   return (
     <div
@@ -223,7 +256,11 @@ function CanvasTools({ center }: { center: () => { x: number; y: number } }) {
       'Select',
       () => {
         const next = !useApp.getState().multiSelect
-        useApp.setState({ multiSelect: next, selectedNoteIds: next && useApp.getState().selectedNoteId ? [useApp.getState().selectedNoteId!] : [] })
+        useApp.setState({
+          multiSelect: next,
+          selectedNoteIds:
+            next && useApp.getState().selectedNoteId ? [useApp.getState().selectedNoteId!] : [],
+        })
         toast(`複数選択モード: ${next ? 'ON' : 'OFF'}`)
       },
     ],
@@ -234,7 +271,13 @@ function CanvasTools({ center }: { center: () => { x: number; y: number } }) {
     <div className="canvas-tools" data-testid="canvas-tools" role="toolbar" aria-label="Canvas Tools">
       <span className="canvas-tools-label">CANVAS TOOLS</span>
       {tools.map(([k, icon, label, run]) => (
-        <button key={k} className={`btn tool ${k === 'multi' && multi ? 'active' : ''}`} data-testid={`tool-${label.toLowerCase()}`} title={label} onClick={run}>
+        <button
+          key={k}
+          className={`btn tool ${k === 'multi' && multi ? 'active' : ''}`}
+          data-testid={`tool-${label.toLowerCase()}`}
+          title={label}
+          onClick={run}
+        >
           {icon} <span>{label}</span>
         </button>
       ))}
@@ -253,22 +296,60 @@ function CanvasInner() {
   const rf = useReactFlow()
   const viewport = useViewport()
   const wrapper = useRef<HTMLDivElement>(null)
-  const treeSection = scope !== 'all' && scope !== 'unassigned' && findSection(state.structure, scope) ? scope : null
-  const layout = useMemo(() => (treeSection ? treeLayout(state, treeSection) : freeLayout(state)), [state, treeSection])
+  const treeSection =
+    scope !== 'all' && scope !== 'unassigned' && findSection(state.structure, scope) ? scope : null
+  const layout = useMemo(
+    () => (treeSection ? treeLayout(state, treeSection) : freeLayout(state)),
+    [state, treeSection],
+  )
   const tree = layout.mode === 'tree'
 
   const derivedNodes = useMemo<Node[]>(() => {
     const nodes: Node[] = []
-    for (const h of layout.headers) nodes.push({ id: h.id, type: 'header', position: { x: h.x, y: h.y }, data: { label: h.label }, draggable: false, selectable: false })
+    for (const h of layout.headers)
+      nodes.push({
+        id: h.id,
+        type: 'header',
+        position: { x: h.x, y: h.y },
+        data: { label: h.label },
+        draggable: false,
+        selectable: false,
+      })
     for (const g of layout.groups)
-      nodes.push({ id: g.id, type: 'group', position: { x: g.x, y: g.y }, data: { group: g.group, crumb: g.crumb, expanded: g.expanded, tree }, dragHandle: '.para-head', draggable: !tree })
-    for (const l of layout.loose) nodes.push({ id: l.id, type: 'loose', position: { x: l.x, y: l.y }, data: { noteId: l.noteId }, draggable: true })
+      nodes.push({
+        id: g.id,
+        type: 'group',
+        position: { x: g.x, y: g.y },
+        data: { group: g.group, crumb: g.crumb, expanded: g.expanded, tree },
+        dragHandle: '.para-head',
+        draggable: !tree,
+      })
+    for (const l of layout.loose)
+      nodes.push({
+        id: l.id,
+        type: 'loose',
+        position: { x: l.x, y: l.y },
+        data: { noteId: l.noteId },
+        draggable: true,
+      })
     return nodes
   }, [layout, tree])
   const [nodes, setNodes] = useState<Node[]>(derivedNodes)
   useEffect(() => setNodes(derivedNodes), [derivedNodes])
-  const edges = useMemo<Edge[]>(() => layout.edges.map((e) => ({ ...e, type: 'smoothstep', selectable: false, className: 'tree-edge' })), [layout])
-  const onNodesChange = useCallback((changes: NodeChange[]) => setNodes((ns) => applyNodeChanges(changes.filter((c) => c.type !== 'select' && c.type !== 'remove'), ns)), [])
+  const edges = useMemo<Edge[]>(
+    () => layout.edges.map((e) => ({ ...e, type: 'smoothstep', selectable: false, className: 'tree-edge' })),
+    [layout],
+  )
+  const onNodesChange = useCallback(
+    (changes: NodeChange[]) =>
+      setNodes((ns) =>
+        applyNodeChanges(
+          changes.filter((c) => c.type !== 'select' && c.type !== 'remove'),
+          ns,
+        ),
+      ),
+    [],
+  )
 
   // Initial viewport: saved one for All, fit for the tree view.
   const initialised = useRef<string | null>(null)
@@ -288,7 +369,10 @@ function CanvasInner() {
     (_: unknown, vp: { x: number; y: number; zoom: number }) => {
       if (treeSection) return
       clearTimeout(saveViewport.current)
-      saveViewport.current = setTimeout(() => void exec({ type: 'canvas.setViewport', viewport: vp }, { quiet: true }), 600)
+      saveViewport.current = setTimeout(
+        () => void exec({ type: 'canvas.setViewport', viewport: vp }, { quiet: true }),
+        600,
+      )
     },
     [treeSection],
   )
@@ -318,11 +402,23 @@ function CanvasInner() {
 
   const onNodeDragStop = useCallback(
     (_: unknown, node: Node) => {
-      if (node.type === 'group') void exec({ type: 'canvas.setGroupPos', id: node.id.slice(2), pos: node.position }, { quiet: true })
+      if (node.type === 'group')
+        void exec({ type: 'canvas.setGroupPos', id: node.id.slice(2), pos: node.position }, { quiet: true })
       if (node.type === 'loose') {
         const noteId = node.id.slice(2)
         const hit = rf.getIntersectingNodes(node).find((n) => n.type === 'group')
-        if (hit) void exec({ type: 'batch', label: 'place note', commands: [{ type: 'note.move', id: noteId, target: { kind: 'group', id: hit.id.slice(2), position: 'inside' } }] })
+        if (hit)
+          void exec({
+            type: 'batch',
+            label: 'place note',
+            commands: [
+              {
+                type: 'note.move',
+                id: noteId,
+                target: { kind: 'group', id: hit.id.slice(2), position: 'inside' },
+              },
+            ],
+          })
         else void exec({ type: 'canvas.setNotePos', id: noteId, pos: node.position }, { quiet: true })
       }
     },
@@ -334,7 +430,14 @@ function CanvasInner() {
     if (!id || tree) return
     e.preventDefault()
     const pos = rf.screenToFlowPosition({ x: e.clientX, y: e.clientY })
-    void exec({ type: 'batch', label: 'unplace note', commands: [{ type: 'note.move', id, target: { kind: 'unassigned' } }, { type: 'canvas.setNotePos', id, pos }] })
+    void exec({
+      type: 'batch',
+      label: 'unplace note',
+      commands: [
+        { type: 'note.move', id, target: { kind: 'unassigned' } },
+        { type: 'canvas.setNotePos', id, pos },
+      ],
+    })
   }
 
   const scopeLabel = treeSection ? sectionBreadcrumb(state.structure, treeSection) : 'All'
@@ -397,17 +500,26 @@ function CanvasInner() {
         />
         <div className="stage-bottom">
           <div className="zoom-pill">
-            <button aria-label="Zoom out" data-testid="zoom-out" onClick={() => void rf.zoomOut({ duration: 120 })}>
+            <button
+              aria-label="Zoom out"
+              data-testid="zoom-out"
+              onClick={() => void rf.zoomOut({ duration: 120 })}
+            >
               −
             </button>
             <span data-testid="zoom-text">{Math.round(viewport.zoom * 100)}%</span>
-            <button aria-label="Zoom in" data-testid="zoom-in" onClick={() => void rf.zoomIn({ duration: 120 })}>
+            <button
+              aria-label="Zoom in"
+              data-testid="zoom-in"
+              onClick={() => void rf.zoomIn({ duration: 120 })}
+            >
               ＋
             </button>
           </div>
           <span className="grow" />
           <div className="status" data-testid="canvas-status">
-            {tree ? 'Auto tree layout' : 'Free layout'} · {layout.groups.length} groups{tree ? '' : ` · ${layout.loose.length} unassigned`}
+            {tree ? 'Auto tree layout' : 'Free layout'} · {layout.groups.length} groups
+            {tree ? '' : ` · ${layout.loose.length} unassigned`}
           </div>
         </div>
       </div>

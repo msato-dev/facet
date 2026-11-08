@@ -3,7 +3,9 @@ import type { CanvasData, CanvasState, DomainState, GroupId, NoteId, Point } fro
 export function defaultCanvasState(): CanvasState {
   return {
     schemaVersion: 1,
-    canvases: [{ id: 'main', name: 'Main Canvas', viewport: null, groups: {}, collapsed: [], looseNotes: {} }],
+    canvases: [
+      { id: 'main', name: 'Main Canvas', viewport: null, groups: {}, collapsed: [], looseNotes: {} },
+    ],
   }
 }
 
@@ -25,7 +27,10 @@ export function setGroupPos(state: DomainState, id: GroupId, pos: Point): Domain
 }
 
 export function setNotePos(state: DomainState, id: NoteId, pos: Point): DomainState {
-  return updateMainCanvas(state, (c) => ({ ...c, looseNotes: { ...c.looseNotes, [id]: { x: pos.x, y: pos.y } } }))
+  return updateMainCanvas(state, (c) => ({
+    ...c,
+    looseNotes: { ...c.looseNotes, [id]: { x: pos.x, y: pos.y } },
+  }))
 }
 
 /** Remove canvas entries that point at nodes which no longer exist. */

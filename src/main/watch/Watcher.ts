@@ -19,14 +19,23 @@ export class VaultWatcher {
       depth: 3,
       ignored: (p: string) => {
         const rel = path.relative(this.root, p).split(path.sep).join('/')
-        return rel.startsWith('.facet') || rel.startsWith('exports') || rel.endsWith('.facet-tmp') || rel.startsWith('.git') || rel.includes('/.facet-write-test')
+        return (
+          rel.startsWith('.facet') ||
+          rel.startsWith('exports') ||
+          rel.endsWith('.facet-tmp') ||
+          rel.startsWith('.git') ||
+          rel.includes('/.facet-write-test')
+        )
       },
       awaitWriteFinish: { stabilityThreshold: 120, pollInterval: 40 },
     })
     const handle = (p: string) => {
       const rel = path.relative(this.root, p).split(path.sep).join('/')
       clearTimeout(this.timers.get(rel))
-      this.timers.set(rel, setTimeout(() => this.onChange(rel), 80))
+      this.timers.set(
+        rel,
+        setTimeout(() => this.onChange(rel), 80),
+      )
     }
     this.watcher.on('add', handle).on('change', handle).on('unlink', handle)
     this.watchBib(bibAbs)
@@ -39,7 +48,10 @@ export class VaultWatcher {
       this.bibWatcher = null
       return
     }
-    this.bibWatcher = watch(bibAbs, { ignoreInitial: true, awaitWriteFinish: { stabilityThreshold: 200, pollInterval: 50 } })
+    this.bibWatcher = watch(bibAbs, {
+      ignoreInitial: true,
+      awaitWriteFinish: { stabilityThreshold: 200, pollInterval: 50 },
+    })
     this.bibWatcher.on('all', () => this.onBibChange())
   }
 

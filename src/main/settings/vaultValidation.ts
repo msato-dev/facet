@@ -37,7 +37,11 @@ export async function validateVaultForWorkspace(workspaceId: string, p: string):
   try {
     const project = await VaultRepository.readProject(p)
     if (project.workspaceId !== workspaceId)
-      return { ok: false, path: p, message: `別のWorkspace「${project.name}」のVaultです。このWorkspaceのVaultを指定してください` }
+      return {
+        ok: false,
+        path: p,
+        message: `別のWorkspace「${project.name}」のVaultです。このWorkspaceのVaultを指定してください`,
+      }
     return { ok: true, path: path.resolve(p), message: `有効なVaultです（${project.name}）` }
   } catch (e) {
     return { ok: false, path: p, message: e instanceof VaultError ? e.message : 'Vault構造を確認できません' }
@@ -45,7 +49,9 @@ export async function validateVaultForWorkspace(workspaceId: string, p: string):
 }
 
 /** For "Add workspace": existing vault → register; folder without FACET files → initialize. */
-export async function inspectNewWorkspaceFolder(p: string): Promise<{ ok: boolean; mode?: 'register' | 'init'; message: string }> {
+export async function inspectNewWorkspaceFolder(
+  p: string,
+): Promise<{ ok: boolean; mode?: 'register' | 'init'; message: string }> {
   const dirError = await checkDirectory(p)
   if (dirError) return { ok: false, message: dirError }
   if (await VaultRepository.isVault(p)) {
@@ -57,7 +63,13 @@ export async function inspectNewWorkspaceFolder(p: string): Promise<{ ok: boolea
     }
   }
   const entries = await readdir(p)
-  const facetFiles = ['notes-index.json', 'structure.json', 'canvas-state.json'].filter((f) => entries.includes(f))
-  if (facetFiles.length) return { ok: false, message: `project.yml がないのに ${facetFiles.join(', ')} があります。Vault構造を確認してください` }
+  const facetFiles = ['notes-index.json', 'structure.json', 'canvas-state.json'].filter((f) =>
+    entries.includes(f),
+  )
+  if (facetFiles.length)
+    return {
+      ok: false,
+      message: `project.yml がないのに ${facetFiles.join(', ')} があります。Vault構造を確認してください`,
+    }
   return { ok: true, mode: 'init', message: '新しいVaultとして初期化します（既存のファイルは変更しません）' }
 }

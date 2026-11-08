@@ -2,7 +2,14 @@
 import { create } from 'zustand'
 import type { Command, CommandInfo } from '../../shared/domain/commands'
 import { applyPatch } from '../../shared/domain/history'
-import type { GroupId, NoteId, SectionId, WorkspaceId, WorkspaceSnapshot, WorkspaceSummary } from '../../shared/domain/types'
+import type {
+  GroupId,
+  NoteId,
+  SectionId,
+  WorkspaceId,
+  WorkspaceSnapshot,
+  WorkspaceSummary,
+} from '../../shared/domain/types'
 import type { CommandResponse, WorkspaceEvent } from '../../shared/ipc/contract'
 
 export type Tab = 'Canvas' | 'Outline' | 'Cards' | 'Reference'
@@ -16,8 +23,22 @@ export interface Toast {
 }
 
 export type DialogRequest =
-  | { kind: 'prompt'; title: string; label?: string; initial?: string; okLabel?: string; resolve: (v: string | null) => void }
-  | { kind: 'confirm'; title: string; message: string; okLabel?: string; danger?: boolean; resolve: (v: boolean) => void }
+  | {
+      kind: 'prompt'
+      title: string
+      label?: string
+      initial?: string
+      okLabel?: string
+      resolve: (v: string | null) => void
+    }
+  | {
+      kind: 'confirm'
+      title: string
+      message: string
+      okLabel?: string
+      danger?: boolean
+      resolve: (v: boolean) => void
+    }
   | { kind: 'citation'; noteId: NoteId | null }
   | { kind: 'settings' }
   | { kind: 'trash' }
@@ -111,11 +132,18 @@ export function closeDialog(d: DialogRequest): void {
   set((s) => ({ dialogs: s.dialogs.filter((x) => x !== d) }))
 }
 
-export function promptText(title: string, opts: { label?: string; initial?: string; okLabel?: string } = {}): Promise<string | null> {
+export function promptText(
+  title: string,
+  opts: { label?: string; initial?: string; okLabel?: string } = {},
+): Promise<string | null> {
   return new Promise((resolve) => openDialog({ kind: 'prompt', title, ...opts, resolve }))
 }
 
-export function confirmAction(title: string, message: string, opts: { okLabel?: string; danger?: boolean } = {}): Promise<boolean> {
+export function confirmAction(
+  title: string,
+  message: string,
+  opts: { okLabel?: string; danger?: boolean } = {},
+): Promise<boolean> {
   return new Promise((resolve) => openDialog({ kind: 'confirm', title, message, ...opts, resolve }))
 }
 
@@ -139,7 +167,13 @@ export async function initApp(): Promise<void> {
   if (initStarted) return
   initStarted = true
   const init = await window.facet.getInitialState()
-  set({ workspaces: init.workspaces, leftOpen: init.panes.leftOpen, rightOpen: init.panes.rightOpen, version: init.version, e2e: init.e2e })
+  set({
+    workspaces: init.workspaces,
+    leftOpen: init.panes.leftOpen,
+    rightOpen: init.panes.rightOpen,
+    version: init.version,
+    e2e: init.e2e,
+  })
   window.facet.onWorkspaceEvent(handleWorkspaceEvent)
   if (init.activeWorkspaceId) await switchWorkspace(init.activeWorkspaceId)
   set({ ready: true })
@@ -197,17 +231,29 @@ function applyResponse(r: CommandResponse): void {
   if (!r.ok) return
   const { snapshot } = get()
   if (!snapshot) return
-  set({ snapshot: { ...snapshot, state: applyPatch(snapshot.state, r.patch), canUndo: r.canUndo, canRedo: r.canRedo, trash: r.trash } })
+  set({
+    snapshot: {
+      ...snapshot,
+      state: applyPatch(snapshot.state, r.patch),
+      canUndo: r.canUndo,
+      canRedo: r.canRedo,
+      trash: r.trash,
+    },
+  })
 }
 
 /** Execute a domain command in Main. Errors are toasted unless `quiet`. */
-export async function exec(cmd: Command, opts: { quiet?: boolean } = {}): Promise<{ ok: true; info: CommandInfo } | { ok: false; code: string; message: string }> {
+export async function exec(
+  cmd: Command,
+  opts: { quiet?: boolean } = {},
+): Promise<{ ok: true; info: CommandInfo } | { ok: false; code: string; message: string }> {
   const { activeId } = get()
   if (!activeId) return { ok: false, code: 'not-found', message: 'Workspaceがありません' }
   set((s) => ({ saving: s.saving + 1 }))
   try {
     const r = await window.facet.execute(activeId, cmd)
-    if (get().activeId !== activeId) return { ok: false, code: 'stale', message: 'Workspaceが切り替わりました' }
+    if (get().activeId !== activeId)
+      return { ok: false, code: 'stale', message: 'Workspaceが切り替わりました' }
     applyResponse(r)
     if (!r.ok) {
       if (!opts.quiet) toast(r.error.message, 'error')
@@ -257,7 +303,10 @@ export function selectNote(id: NoteId | null, groupId: GroupId | null = null): v
   const s = get()
   if (s.multiSelect && id) {
     const has = s.selectedNoteIds.includes(id)
-    set({ selectedNoteIds: has ? s.selectedNoteIds.filter((x) => x !== id) : [...s.selectedNoteIds, id], selectedNoteId: id })
+    set({
+      selectedNoteIds: has ? s.selectedNoteIds.filter((x) => x !== id) : [...s.selectedNoteIds, id],
+      selectedNoteId: id,
+    })
     return
   }
   set({ selectedNoteId: id, selectedGroupId: groupId ?? s.selectedGroupId })

@@ -29,8 +29,16 @@ function Center() {
         <h1 className="heading">FACET</h1>
         <p className="subheading">FACET Arranges Concepts, Evidence, and Text</p>
         {loadError && <p className="field-error">Workspaceを開けません: {loadError}</p>}
-        <p className="helper">{workspaces.length ? 'Settings の Vault Locations で参照先を確認してください。' : '論文ごとのWorkspace（Vaultフォルダー）を追加して始めます。'}</p>
-        <button className="btn primary" data-testid="welcome-settings" onClick={() => openDialog({ kind: 'settings' })}>
+        <p className="helper">
+          {workspaces.length
+            ? 'Settings の Vault Locations で参照先を確認してください。'
+            : '論文ごとのWorkspace（Vaultフォルダー）を追加して始めます。'}
+        </p>
+        <button
+          className="btn primary"
+          data-testid="welcome-settings"
+          onClick={() => openDialog({ kind: 'settings' })}
+        >
           ⚙ Open Settings
         </button>
       </div>

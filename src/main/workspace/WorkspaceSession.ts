@@ -1,9 +1,22 @@
 // One open workspace: the single writer for its vault (ADR-002).
 import path from 'node:path'
-import { applyCommand, commandLabel, isUndoable, type Command, type CommandContext } from '../../shared/domain/commands'
+import {
+  applyCommand,
+  commandLabel,
+  isUndoable,
+  type Command,
+  type CommandContext,
+} from '../../shared/domain/commands'
 import { UndoStack, diffState } from '../../shared/domain/history'
 import { newId } from '../../shared/domain/ids'
-import type { BibliographyState, DomainState, NoteId, TrashEntry, VaultIssue, WorkspaceSnapshot } from '../../shared/domain/types'
+import type {
+  BibliographyState,
+  DomainState,
+  NoteId,
+  TrashEntry,
+  VaultIssue,
+  WorkspaceSnapshot,
+} from '../../shared/domain/types'
 import type { CommandResponse, WorkspaceEvent } from '../../shared/ipc/contract'
 import { loadBibliography } from '../bib/bib'
 import { VaultError, VaultRepository, FILES } from '../vault/VaultRepository'
@@ -33,7 +46,14 @@ export class WorkspaceSession {
     onNotesChanged: (s: WorkspaceSession, patch: ReturnType<typeof diffState>['notes']) => void,
   ): Promise<WorkspaceSession> {
     const { repo, loaded } = await VaultRepository.open(vaultPath)
-    const s = new WorkspaceSession(loaded.project.workspaceId, loaded.project.name, repo.root, repo, emit, onNotesChanged)
+    const s = new WorkspaceSession(
+      loaded.project.workspaceId,
+      loaded.project.name,
+      repo.root,
+      repo,
+      emit,
+      onNotesChanged,
+    )
     s.state = loaded.state
     s.issues = loaded.issues
     s.trash = loaded.trash
@@ -69,7 +89,13 @@ export class WorkspaceSession {
     } catch (e) {
       if (e instanceof VaultError && e.code === 'conflict') {
         await this.absorbExternalChanges(e.conflictFiles)
-        return { ok: false, error: { code: 'conflict', message: `${e.message}。外部の変更を読み込みました。内容を確認してから再度保存してください` } }
+        return {
+          ok: false,
+          error: {
+            code: 'conflict',
+            message: `${e.message}。外部の変更を読み込みました。内容を確認してから再度保存してください`,
+          },
+        }
       }
       return { ok: false, error: { code: 'invalid', message: `保存に失敗しました: ${(e as Error).message}` } }
     }
@@ -78,7 +104,14 @@ export class WorkspaceSession {
     this.trash = this.repo.trashEntries()
     const patch = diffState(prev, next)
     if (Object.keys(patch.notes).length) this.onNotesChanged(this, patch.notes)
-    return { ok: true, patch, info: {}, canUndo: this.undoStack.canUndo, canRedo: this.undoStack.canRedo, trash: this.trash }
+    return {
+      ok: true,
+      patch,
+      info: {},
+      canUndo: this.undoStack.canUndo,
+      canRedo: this.undoStack.canRedo,
+      trash: this.trash,
+    }
   }
 
   execute(cmd: Command): Promise<CommandResponse> {
@@ -86,7 +119,14 @@ export class WorkspaceSession {
       const r = applyCommand(this.state, cmd, ctx)
       if (!r.ok) return { ok: false, error: r.error }
       if (r.state === this.state)
-        return { ok: true, patch: { notes: {} }, info: r.info, canUndo: this.undoStack.canUndo, canRedo: this.undoStack.canRedo, trash: this.trash }
+        return {
+          ok: true,
+          patch: { notes: {} },
+          info: r.info,
+          canUndo: this.undoStack.canUndo,
+          canRedo: this.undoStack.canRedo,
+          trash: this.trash,
+        }
       const res = await this.commit(r.state, isUndoable(cmd) ? commandLabel(cmd) : null)
       if (res.ok) res.info = r.info
       if (res.ok && cmd.type === 'note.restore') {
@@ -119,18 +159,32 @@ export class WorkspaceSession {
       await this.repo.persist(prev, next)
     } catch (e) {
       revert()
-      return { ok: false, error: { code: 'conflict', message: `保存に失敗しました: ${(e as Error).message}` } }
+      return {
+        ok: false,
+        error: { code: 'conflict', message: `保存に失敗しました: ${(e as Error).message}` },
+      }
     }
     this.state = next
     this.trash = this.repo.trashEntries()
     const patch = diffState(prev, next)
     if (Object.keys(patch.notes).length) this.onNotesChanged(this, patch.notes)
-    return { ok: true, patch, info: {}, canUndo: this.undoStack.canUndo, canRedo: this.undoStack.canRedo, trash: this.trash }
+    return {
+      ok: true,
+      patch,
+      info: {},
+      canUndo: this.undoStack.canUndo,
+      canRedo: this.undoStack.canRedo,
+      trash: this.trash,
+    }
   }
 
   restoreFromTrash(noteId: NoteId): Promise<CommandResponse> {
     return this.repo.readTrashed(noteId).then((note) => {
-      if (!note) return { ok: false, error: { code: 'not-found', message: 'ゴミ箱にメモが見つかりません' } } as CommandResponse
+      if (!note)
+        return {
+          ok: false,
+          error: { code: 'not-found', message: 'ゴミ箱にメモが見つかりません' },
+        } as CommandResponse
       return this.execute({ type: 'note.restore', note })
     })
   }
@@ -169,14 +223,23 @@ export class WorkspaceSession {
         await this.fullReload('外部でメモファイルが追加・削除されたため再読込しました')
         return
       }
-      next = { ...next, notes: { ...next.notes, [id]: { ...cur, title: fresh.title, body: fresh.body, rev: cur.rev + 1 } } }
+      next = {
+        ...next,
+        notes: { ...next.notes, [id]: { ...cur, title: fresh.title, body: fresh.body, rev: cur.rev + 1 } },
+      }
       changed.push(id)
     }
     if (!changed.length) return
     const patch = diffState(this.state, next)
     this.state = next
     this.onNotesChanged(this, patch.notes)
-    this.emit({ type: 'external-change', workspaceId: this.id, patch, changedNoteIds: changed, message: '外部で編集されたメモを読み込みました' })
+    this.emit({
+      type: 'external-change',
+      workspaceId: this.id,
+      patch,
+      changedNoteIds: changed,
+      message: '外部で編集されたメモを読み込みました',
+    })
   }
 
   private async fullReload(message: string): Promise<void> {

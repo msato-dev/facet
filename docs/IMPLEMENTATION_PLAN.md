@@ -351,3 +351,11 @@ facet/
 - Step 0 の後に `git log -1` でコミットを確認する。`docs/IMPLEMENTATION_PLAN.md`、`DECISIONS.md`、`CLAUDE.md` が存在することを確認する。
 - 各 Phase: `npm run typecheck`、`npm run lint`、`npm test`、`npm run test:e2e -- --grep <対象ID>`。
 - 最終: Windows 11 実機で portable EXE を単独起動し、オフラインで作成・保存・再読込みできることを確認する。
+
+---
+
+## 実装状況（2026-11-08）
+
+- Phase 1〜5 の機能を develop ブランチに実装済み。Phase 6 の自動テスト（単体・統合 45、E2E 25）と性能計測を実施済み。
+- 計画からの変更点は `docs/DECISIONS.md` の ADR-021〜027 に記録（D&D は HTML5 ネイティブ、BibTeX パーサーは純 JS ビルドなど）。
+- 未完了: Windows 11 実機での WIN-01/WIN-02 の手動確認（CI の windows-latest ジョブで portable EXE をビルドし、パッケージ版で E2E を実行する構成は用意済み）、コード署名。

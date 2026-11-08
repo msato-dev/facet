@@ -39,7 +39,13 @@ export function NavBar() {
         >
           ⌕ Search all workspaces
         </button>
-        <button className="btn icon settings-button" data-testid="settings-button" title="Settings" aria-label="Settings" onClick={() => openDialog({ kind: 'settings' })}>
+        <button
+          className="btn icon settings-button"
+          data-testid="settings-button"
+          title="Settings"
+          aria-label="Settings"
+          onClick={() => openDialog({ kind: 'settings' })}
+        >
           ⚙
         </button>
       </div>
@@ -54,7 +60,11 @@ function WorkspaceSwitcher() {
     return (
       <div className="ws-panel">
         <div className="side-label">WORKSPACE</div>
-        <button className="btn primary full" data-testid="add-first-workspace" onClick={() => openDialog({ kind: 'settings' })}>
+        <button
+          className="btn primary full"
+          data-testid="add-first-workspace"
+          onClick={() => openDialog({ kind: 'settings' })}
+        >
           ＋ Add workspace…
         </button>
       </div>
@@ -65,7 +75,13 @@ function WorkspaceSwitcher() {
       <label className="side-label" htmlFor="ws-select">
         WORKSPACE
       </label>
-      <select id="ws-select" className="select full" data-testid="workspace-select" value={activeId ?? ''} onChange={(e) => void switchWorkspace(e.target.value)}>
+      <select
+        id="ws-select"
+        className="select full"
+        data-testid="workspace-select"
+        value={activeId ?? ''}
+        onChange={(e) => void switchWorkspace(e.target.value)}
+      >
         {workspaces.map((w) => (
           <option key={w.id} value={w.id}>
             {w.name}
@@ -87,7 +103,9 @@ function SectionsTree() {
   const groups = allGroups(structure)
   const countIn = (id: string) => {
     const ids = sectionSubtreeIds(structure, id)
-    return groups.filter((g) => g.parent.type === 'section' && ids.has((g.parent as Extract<ParentRef, { type: 'section' }>).id)).length
+    return groups.filter(
+      (g) => g.parent.type === 'section' && ids.has((g.parent as Extract<ParentRef, { type: 'section' }>).id),
+    ).length
   }
   const choose = (id: string) => {
     useApp.setState({ scope: id })
@@ -112,19 +130,28 @@ function SectionsTree() {
           <span className="count">{countIn(s.id)}</span>
         </button>,
       )
-      rec(s.children.filter((c): c is SectionNode => c.kind === 'section'), depth + 1)
+      rec(
+        s.children.filter((c): c is SectionNode => c.kind === 'section'),
+        depth + 1,
+      )
     }
   }
   rec(structure.root.children, 1)
   return (
     <div className="sections" data-testid="sections">
       <div className="side-label">SECTIONS</div>
-      <button className={`side-item ${scope === 'all' || scope === 'unassigned' ? 'active' : ''}`} data-testid="section-all" onClick={() => choose('all')}>
+      <button
+        className={`side-item ${scope === 'all' || scope === 'unassigned' ? 'active' : ''}`}
+        data-testid="section-all"
+        onClick={() => choose('all')}
+      >
         <span className="side-item-label">▦ All</span>
         <span className="count">{groups.length} groups</span>
       </button>
       {rows}
-      {rows.length === 0 && <p className="helper side-hint">章がありません。Outlineの「＋ Section」で追加できます。</p>}
+      {rows.length === 0 && (
+        <p className="helper side-hint">章がありません。Outlineの「＋ Section」で追加できます。</p>
+      )}
     </div>
   )
 }
@@ -137,7 +164,13 @@ export function LeftPane() {
   if (!open) {
     return (
       <aside className="pane left closed" data-testid="left-pane" aria-label="左ペイン（折りたたみ）">
-        <button className="pane-toggle" data-testid="toggle-left" title="左ペインを開く" aria-label="左ペインを開く" onClick={() => setPanes(true, rightOpen)}>
+        <button
+          className="pane-toggle"
+          data-testid="toggle-left"
+          title="左ペインを開く"
+          aria-label="左ペインを開く"
+          onClick={() => setPanes(true, rightOpen)}
+        >
           ▶
         </button>
       </aside>
@@ -145,7 +178,13 @@ export function LeftPane() {
   }
   return (
     <aside className="pane left" data-testid="left-pane">
-      <button className="pane-toggle pane-toggle-left" data-testid="toggle-left" title="左ペインを閉じる" aria-label="左ペインを閉じる" onClick={() => setPanes(false, rightOpen)}>
+      <button
+        className="pane-toggle pane-toggle-left"
+        data-testid="toggle-left"
+        title="左ペインを閉じる"
+        aria-label="左ペインを閉じる"
+        onClick={() => setPanes(false, rightOpen)}
+      >
         ◀
       </button>
       <WorkspaceSwitcher />
@@ -153,7 +192,11 @@ export function LeftPane() {
         <div className="sections">
           <div className="side-label">WORKSPACES</div>
           <button className="side-item active">⌕ Search all workspaces</button>
-          <button className="side-item" data-testid="exit-global" onClick={() => useApp.setState({ globalSearch: false })}>
+          <button
+            className="side-item"
+            data-testid="exit-global"
+            onClick={() => useApp.setState({ globalSearch: false })}
+          >
             ← Back to workspace
           </button>
         </div>
@@ -177,7 +220,13 @@ export function RightPane() {
   if (!open) {
     return (
       <aside className="pane right closed" data-testid="right-pane" aria-label="右ペイン（折りたたみ）">
-        <button className="pane-toggle" data-testid="toggle-right" title="右ペインを開く" aria-label="右ペインを開く" onClick={() => setPanes(leftOpen, true)}>
+        <button
+          className="pane-toggle"
+          data-testid="toggle-right"
+          title="右ペインを開く"
+          aria-label="右ペインを開く"
+          onClick={() => setPanes(leftOpen, true)}
+        >
           ◀
         </button>
       </aside>
@@ -185,7 +234,13 @@ export function RightPane() {
   }
   return (
     <aside className="pane right" data-testid="right-pane">
-      <button className="pane-toggle pane-toggle-right" data-testid="toggle-right" title="右ペインを閉じる" aria-label="右ペインを閉じる" onClick={() => setPanes(leftOpen, false)}>
+      <button
+        className="pane-toggle pane-toggle-right"
+        data-testid="toggle-right"
+        title="右ペインを閉じる"
+        aria-label="右ペインを閉じる"
+        onClick={() => setPanes(leftOpen, false)}
+      >
         ▶
       </button>
       <NoteEditor />

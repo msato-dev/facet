@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [develop, main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: node node_modules/electron/install.js
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - name: E2E (Electron under Xvfb)
+        run: xvfb-run --auto-servernum npx playwright test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-linux
+          path: test-results/
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: node node_modules/electron/install.js
+      - run: npm test
+      - name: Build portable EXE (WIN-01)
+        run: npm run dist:win
+      - name: E2E against the packaged Windows build
+        shell: pwsh
+        run: |
+          $env:FACET_EXECUTABLE = "$PWD\release\win-unpacked\FACET.exe"
+          npx playwright test
+      - name: Portable relocation smoke (WIN-02)
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem release -Filter "FACET-*-portable-x64.exe" | Select-Object -First 1
+          foreach ($d in @("$env:RUNNER_TEMP\a", "$env:RUNNER_TEMP\b")) {
+            New-Item -ItemType Directory -Force $d | Out-Null
+            Copy-Item $exe.FullName $d
+          }
+          Write-Host "Portable EXE copied to two folders; settings live in %APPDATA%\FACET and are shared."
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FACET-portable-win-x64
+          path: release/FACET-*-portable-x64.exe
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-windows
+          path: test-results/

@@ -2,7 +2,8 @@
 import type { DomainState, GroupNode, SectionNode } from './types'
 
 export interface InvariantViolation {
-  code: 'duplicate-id' | 'duplicate-placement' | 'unknown-note' | 'archived-placed' | 'group-at-root' | 'bad-kind'
+  code:
+    'duplicate-id' | 'duplicate-placement' | 'unknown-note' | 'archived-placed' | 'group-at-root' | 'bad-kind'
   message: string
 }
 
@@ -17,7 +18,8 @@ export function checkInvariants(state: DomainState): InvariantViolation[] {
     seenNodeIds.add(g.id)
     for (const nid of g.noteIds) {
       const prev = placed.get(nid)
-      if (prev) out.push({ code: 'duplicate-placement', message: `Note ${nid} placed in ${prev} and ${g.id}` })
+      if (prev)
+        out.push({ code: 'duplicate-placement', message: `Note ${nid} placed in ${prev} and ${g.id}` })
       placed.set(nid, g.id)
       const note = state.notes[nid]
       if (!note) out.push({ code: 'unknown-note', message: `Group ${g.id} references missing note ${nid}` })
@@ -26,7 +28,8 @@ export function checkInvariants(state: DomainState): InvariantViolation[] {
   }
   // A real tree cannot contain cycles; repeated ids are what a cycle would look like after serialization.
   const visitSection = (s: SectionNode) => {
-    if (s.kind !== 'section') out.push({ code: 'bad-kind', message: `Expected section: ${(s as { id: string }).id}` })
+    if (s.kind !== 'section')
+      out.push({ code: 'bad-kind', message: `Expected section: ${(s as { id: string }).id}` })
     if (seenNodeIds.has(s.id)) out.push({ code: 'duplicate-id', message: `Duplicate node id ${s.id}` })
     seenNodeIds.add(s.id)
     for (const c of s.children) {

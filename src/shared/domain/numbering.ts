@@ -27,7 +27,11 @@ export function computeNumbering(s: Structure): SectionNumbering {
 }
 
 /** Breadcrumb of numbered labels for a section ("4. Discussion › 4.1. Magma recharge"). */
-export function sectionBreadcrumb(s: Structure, sectionId: SectionId, numbering = computeNumbering(s)): string {
+export function sectionBreadcrumb(
+  s: Structure,
+  sectionId: SectionId,
+  numbering = computeNumbering(s),
+): string {
   const loc = findSection(s, sectionId)
   if (!loc) return 'Unassigned'
   return loc.path.map((p) => numbering.label.get(p.id) ?? p.title).join(' › ')

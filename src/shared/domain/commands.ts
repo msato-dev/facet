@@ -29,7 +29,14 @@ export type DropTarget =
   | { kind: 'root' }
 
 export type Command =
-  | { type: 'note.create'; title: string; body?: string; tags?: string[]; groupId?: GroupId; canvasPos?: Point }
+  | {
+      type: 'note.create'
+      title: string
+      body?: string
+      tags?: string[]
+      groupId?: GroupId
+      canvasPos?: Point
+    }
   | { type: 'note.rename'; id: NoteId; title: string }
   | { type: 'note.updateBody'; id: NoteId; body: string; baseRev: number | null }
   | { type: 'note.setTags'; id: NoteId; tags: string[] }
@@ -66,7 +73,8 @@ export interface CommandInfo {
   updatedLinks?: number
 }
 
-export type CommandResult = { ok: true; state: DomainState; info: CommandInfo } | { ok: false; error: CommandError }
+export type CommandResult =
+  { ok: true; state: DomainState; info: CommandInfo } | { ok: false; error: CommandError }
 
 export interface CommandContext {
   now: () => string
@@ -76,7 +84,11 @@ export interface CommandContext {
 /** Commands whose effects are not recorded on the app-level undo stack. */
 export function isUndoable(cmd: Command): boolean {
   if (cmd.type === 'batch') return cmd.commands.some(isUndoable)
-  return cmd.type !== 'note.updateBody' && cmd.type !== 'canvas.setViewport' && cmd.type !== 'canvas.setGroupExpanded'
+  return (
+    cmd.type !== 'note.updateBody' &&
+    cmd.type !== 'canvas.setViewport' &&
+    cmd.type !== 'canvas.setGroupExpanded'
+  )
 }
 
 export function commandLabel(cmd: Command): string {
@@ -150,22 +162,29 @@ function newNote(ctx: CommandContext, title: string, body: string, tags: string[
 // ---------------------------------------------------------------------------
 // Moves
 
-function resolveSectionTarget(state: DomainState, movingId: string, target: DropTarget): { parent: ParentRef; index: number } {
+function resolveSectionTarget(
+  state: DomainState,
+  movingId: string,
+  target: DropTarget,
+): { parent: ParentRef; index: number } {
   const s = state.structure
   if (target.kind === 'root') return { parent: { type: 'root' }, index: s.root.children.length }
   if (target.kind === 'unassigned') fail('invalid-move', '章節は未配置領域へ移動できません')
   if (target.kind === 'note') fail('invalid-move', '章節はメモの位置へ移動できません')
   if (target.kind === 'section') {
-    if (isSectionDescendant(s, movingId, target.id)) fail('invalid-move', '章節を自身または子孫の中へ移動できません')
+    if (isSectionDescendant(s, movingId, target.id))
+      fail('invalid-move', '章節を自身または子孫の中へ移動できません')
     const loc = findSection(s, target.id)
     if (!loc) fail('not-found', '移動先の章節が見つかりません')
-    if (target.position === 'inside') return { parent: { type: 'section', id: target.id }, index: loc.section.children.length }
+    if (target.position === 'inside')
+      return { parent: { type: 'section', id: target.id }, index: loc.section.children.length }
     return { parent: loc.parent, index: loc.index + (target.position === 'after' ? 1 : 0) }
   }
   const gl = findGroup(s, target.id)
   if (!gl) fail('not-found', '移動先が見つかりません')
   if (gl.parent.type !== 'section') fail('invalid-move', '章節を未配置グループの位置へ移動できません')
-  if (isSectionDescendant(s, movingId, gl.parent.id)) fail('invalid-move', '章節を自身の子孫の中へ移動できません')
+  if (isSectionDescendant(s, movingId, gl.parent.id))
+    fail('invalid-move', '章節を自身の子孫の中へ移動できません')
   return { parent: gl.parent, index: gl.index + (target.position === 'after' ? 1 : 0) }
 }
 
@@ -275,8 +294,11 @@ function apply(state: DomainState, cmd: Command, ctx: CommandContext, info: Comm
       return st
     }
     case 'note.import': {
-      const title = validateTitle(state.notes, cmd.title) ? uniqueTitle(state.notes, normalizeTitle(cmd.title)) : normalizeTitle(cmd.title)
-      if (validateTitle(state.notes, title)) fail('title', TITLE_ERROR_MESSAGES[validateTitle(state.notes, title)!])
+      const title = validateTitle(state.notes, cmd.title)
+        ? uniqueTitle(state.notes, normalizeTitle(cmd.title))
+        : normalizeTitle(cmd.title)
+      if (validateTitle(state.notes, title))
+        fail('title', TITLE_ERROR_MESSAGES[validateTitle(state.notes, title)!])
       const note = newNote(ctx, title, cmd.body, cmd.tags)
       info.createdId = note.id
       let st = putNote(state, note)
@@ -331,7 +353,14 @@ function apply(state: DomainState, cmd: Command, ctx: CommandContext, info: Comm
         if (note.archived) continue
         const loc = findNoteLocation(st.structure, id)
         st = { ...st, structure: removeNoteFromGroups(st.structure, id) }
-        st = putNote(st, touch(note, { archived: true, lastPlacement: loc ? { groupId: loc.group.id, index: loc.index } : null }, now))
+        st = putNote(
+          st,
+          touch(
+            note,
+            { archived: true, lastPlacement: loc ? { groupId: loc.group.id, index: loc.index } : null },
+            now,
+          ),
+        )
       }
       return st
     }
@@ -373,7 +402,8 @@ function apply(state: DomainState, cmd: Command, ctx: CommandContext, info: Comm
       const node: SectionNode = { kind: 'section', id: ctx.newId(), title, children: [] }
       info.createdId = node.id
       const parent: ParentRef = cmd.parentId ? { type: 'section', id: cmd.parentId } : { type: 'root' }
-      if (cmd.parentId && !findSection(state.structure, cmd.parentId)) fail('not-found', '親の章節が見つかりません')
+      if (cmd.parentId && !findSection(state.structure, cmd.parentId))
+        fail('not-found', '親の章節が見つかりません')
       const len = childrenOf(state.structure, parent).length
       return { ...state, structure: insertNode(state.structure, parent, cmd.index ?? len, node) }
     }
@@ -389,7 +419,8 @@ function apply(state: DomainState, cmd: Command, ctx: CommandContext, info: Comm
       // document root go to the unplaced pool. Notes are never deleted.
       const children = loc.section.children
       const liftable = loc.parent.type === 'root' ? children.filter((c) => c.kind === 'section') : children
-      const orphanGroups = loc.parent.type === 'root' ? (children.filter((c) => c.kind === 'group') as GroupNode[]) : []
+      const orphanGroups =
+        loc.parent.type === 'root' ? (children.filter((c) => c.kind === 'group') as GroupNode[]) : []
       let s = updateChildren(state.structure, loc.parent, (list) => {
         const next = [...list]
         const i = next.findIndex((c) => c.kind === 'section' && c.id === cmd.id)
@@ -453,7 +484,11 @@ function apply(state: DomainState, cmd: Command, ctx: CommandContext, info: Comm
     case 'canvas.setViewport':
       return updateMainCanvas(state, (c) => ({
         ...c,
-        viewport: { x: Math.round(cmd.viewport.x), y: Math.round(cmd.viewport.y), zoom: Math.round(cmd.viewport.zoom * 1000) / 1000 },
+        viewport: {
+          x: Math.round(cmd.viewport.x),
+          y: Math.round(cmd.viewport.y),
+          zoom: Math.round(cmd.viewport.zoom * 1000) / 1000,
+        },
       }))
   }
 }
@@ -468,7 +503,8 @@ export function applyCommand(state: DomainState, cmd: Command, ctx: CommandConte
     const next = apply(state, cmd, ctx, info)
     if (next !== state) {
       const violations = checkInvariants(next)
-      if (violations.length) return { ok: false, error: { code: 'invariant', message: violations[0].message } }
+      if (violations.length)
+        return { ok: false, error: { code: 'invariant', message: violations[0].message } }
     }
     return { ok: true, state: next, info }
   } catch (e) {

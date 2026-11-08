@@ -10,7 +10,7 @@ interface Creator {
   prefix?: string
 }
 
-const CJK = /[぀-ヿ㐀-䶿一-鿿]/
+const CJK = /[\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF]/
 
 function creatorName(c: Creator): string {
   if (c.name) return c.name
@@ -41,7 +41,12 @@ export function parseBibliography(text: string, source: string): BibliographySta
   try {
     lib = parse(text, { sentenceCase: false })
   } catch (e) {
-    return { source, entries: [], issues: [{ kind: 'parse-error', message: (e as Error).message }], loadedAt: new Date().toISOString() }
+    return {
+      source,
+      entries: [],
+      issues: [{ kind: 'parse-error', message: (e as Error).message }],
+      loadedAt: new Date().toISOString(),
+    }
   }
   for (const err of lib.errors) {
     const m = /line (\d+)/.exec(err.error)
@@ -52,7 +57,11 @@ export function parseBibliography(text: string, source: string): BibliographySta
   for (const e of lib.entries) {
     const f = e.fields as unknown as Record<string, unknown>
     if (seen.has(e.key)) {
-      issues.push({ kind: 'duplicate-key', key: e.key, message: `引用キー ${e.key} が重複しています（最初のエントリーを使用）` })
+      issues.push({
+        kind: 'duplicate-key',
+        key: e.key,
+        message: `引用キー ${e.key} が重複しています（最初のエントリーを使用）`,
+      })
       continue
     }
     seen.add(e.key)
@@ -81,7 +90,10 @@ export async function loadBibliography(abs: string, source: string): Promise<Bib
       entries: [],
       issues: [
         missing
-          ? { kind: 'missing-file', message: `BibTeXファイル ${source} が見つかりません。Zotero等からこの場所へエクスポートしてください` }
+          ? {
+              kind: 'missing-file',
+              message: `BibTeXファイル ${source} が見つかりません。Zotero等からこの場所へエクスポートしてください`,
+            }
           : { kind: 'read-error', message: `BibTeXファイルを読み込めません: ${(e as Error).message}` },
       ],
       loadedAt: new Date().toISOString(),

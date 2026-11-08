@@ -19,7 +19,11 @@ export function emptyState(): DomainState {
 }
 
 /** Apply commands, throwing on failure; returns the final state and created ids in order. */
-export function run(state: DomainState, cmds: Command[], ctx = testContext()): { state: DomainState; ids: string[] } {
+export function run(
+  state: DomainState,
+  cmds: Command[],
+  ctx = testContext(),
+): { state: DomainState; ids: string[] } {
   const ids: string[] = []
   let st = state
   for (const c of cmds) {
@@ -52,14 +56,52 @@ export function sampleWorkspace() {
   const methods = mk({ type: 'section.create', title: 'Methods', parentId: null })
   const discussion = mk({ type: 'section.create', title: 'Discussion', parentId: null })
   const recharge = mk({ type: 'section.create', title: 'Magma recharge', parentId: discussion })
-  const n6 = mk({ type: 'note.create', title: 'Research motivation', body: 'Constraining the timescales of pre-eruptive processes improves our understanding of volcanic unrest.' })
-  const n8 = mk({ type: 'note.create', title: 'Previous work', body: 'Previous work has established a link between zoning and recharge [@Tanaka2022].' })
-  const n7 = mk({ type: 'note.create', title: 'Analytical procedure', body: 'Zoning profiles were examined using electron microprobe analyses.' })
-  const n3 = mk({ type: 'note.create', title: 'Recharge frequency', body: 'This pattern may indicate an increasing frequency of magma recharge. See also [[Mush reactivation]].' })
-  const n4 = mk({ type: 'note.create', title: 'Mush reactivation', body: 'Repeated thermal inputs can reactivate a crystal-rich mush [@Smith2024].' })
-  const n9 = mk({ type: 'note.create', title: 'Unplaced insight', body: 'A possible alternative interpretation to revisit before writing.' })
-  const p1 = mk({ type: 'group.create', title: 'Research background', sectionId: background, noteIds: [n6, n8] })
+  const n6 = mk({
+    type: 'note.create',
+    title: 'Research motivation',
+    body: 'Constraining the timescales of pre-eruptive processes improves our understanding of volcanic unrest.',
+  })
+  const n8 = mk({
+    type: 'note.create',
+    title: 'Previous work',
+    body: 'Previous work has established a link between zoning and recharge [@Tanaka2022].',
+  })
+  const n7 = mk({
+    type: 'note.create',
+    title: 'Analytical procedure',
+    body: 'Zoning profiles were examined using electron microprobe analyses.',
+  })
+  const n3 = mk({
+    type: 'note.create',
+    title: 'Recharge frequency',
+    body: 'This pattern may indicate an increasing frequency of magma recharge. See also [[Mush reactivation]].',
+  })
+  const n4 = mk({
+    type: 'note.create',
+    title: 'Mush reactivation',
+    body: 'Repeated thermal inputs can reactivate a crystal-rich mush [@Smith2024].',
+  })
+  const n9 = mk({
+    type: 'note.create',
+    title: 'Unplaced insight',
+    body: 'A possible alternative interpretation to revisit before writing.',
+  })
+  const p1 = mk({
+    type: 'group.create',
+    title: 'Research background',
+    sectionId: background,
+    noteIds: [n6, n8],
+  })
   const p2 = mk({ type: 'group.create', title: 'Analytical methods', sectionId: methods, noteIds: [n7] })
-  const p5 = mk({ type: 'group.create', title: 'Recharge interpretation', sectionId: recharge, noteIds: [n3, n4] })
-  return { state: st, ctx, ids: { intro, background, methods, discussion, recharge, n3, n4, n6, n7, n8, n9, p1, p2, p5 } }
+  const p5 = mk({
+    type: 'group.create',
+    title: 'Recharge interpretation',
+    sectionId: recharge,
+    noteIds: [n3, n4],
+  })
+  return {
+    state: st,
+    ctx,
+    ids: { intro, background, methods, discussion, recharge, n3, n4, n6, n7, n8, n9, p1, p2, p5 },
+  }
 }

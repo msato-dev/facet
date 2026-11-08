@@ -25,3 +25,10 @@ SPEC.md §1.1 の DESIGN 項目と §補足の未確定事項について行っ�
 | 018 | 2026-11-08 | Vault パス変更は絶対パス・存在・読み書き・`project.yml`・workspaceId 一致を検証し、失敗時は旧パス保持 | §7, DAT-06 | Accepted |
 | 019 | 2026-11-08 | Windows ビルドは Windows ネイティブまたは GitHub Actions `windows-latest` で行う | portable (NSIS) は Linux で Wine が必要 | Accepted |
 | 020 | 2026-11-08 | 本文は自動保存（500ms デバウンス＋blur）、Ctrl+S は即時フラッシュ | データ消失の防止 | Accepted |
+| 021 | 2026-11-08 | Outline と Canvas の D&D は dnd-kit ではなく HTML5 ネイティブ D&D で実装（ADR-003 の D&D 部分を置換）。キーボード代替として Alt+↑/↓ | モックと同じ before/inside/after ゾーン判定をそのまま再現でき、React Flow の変換座標下でも安定する。依存を1つ減らせる | Accepted |
+| 022 | 2026-11-08 | BibTeX は `@retorquere/bibtex-parser` の純 JS ビルド（`/js`）を Main で使用 | v13 の既定エクスポートは WASM。純 JS ビルドなら単一バンドルに収まり、エラー行番号も得られる | Accepted |
+| 023 | 2026-11-08 | E2E 用フック: `FACET_E2E=1` のときだけ OS ダイアログ（フォルダー選択・保存先・.bib 選択）をスタブにし、`FACET_USER_DATA` で userData を差し替える | OS ダイアログは自動操作できないため。通常起動では無効 | Accepted |
+| 024 | 2026-11-08 | アーカイブ済みメモは Cards の「Archived」で表示・解除し、削除済みメモは Cards の「Trash」から復元 | SPEC §8.1 の「復元可能」を満たす導線。左ペインに項目を増やさない（§2.1） | Accepted |
+| 025 | 2026-11-08 | Canvas Tools の Copy/Paste は独立したメモの複製（同じ Workspace では「(copy)」を付けた新規メモ、別 Workspace では新しい ID のコピー）。Group は複数選択中のメモを新しい Paragraph Group にまとめる | SPEC §5 の「独立コピー」原則に合わせる | Accepted |
+| 026 | 2026-11-08 | Main は依存をすべて単一ファイルにバンドルし、`dependencies` を持たない（すべて devDependencies） | ESM 専用パッケージへの対応と、portable EXE を小さく保つため | Accepted |
+| 027 | 2026-11-08 | 開発環境（WSL2）では Wine がないため portable EXE は作らず、GitHub Actions の windows-latest でビルドし、パッケージ版に対して E2E を実行する | ADR-019 の具体化 | Accepted |

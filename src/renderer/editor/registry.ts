@@ -31,7 +31,11 @@ export function insertAtCursor(noteId: NoteId, text: string): boolean {
   else view = [...(views.get(noteId) ?? [])][0]
   if (!view) return false
   const { from, to } = view.state.selection.main
-  view.dispatch({ changes: { from, to, insert: text }, selection: { anchor: from + text.length }, scrollIntoView: true })
+  view.dispatch({
+    changes: { from, to, insert: text },
+    selection: { anchor: from + text.length },
+    scrollIntoView: true,
+  })
   view.focus()
   return true
 }

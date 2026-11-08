@@ -24,3 +24,9 @@
 - データ整合性のテストを見た目より優先する。
 - Git コミットは小さく保つ。
 - 最終確認は Windows 11 上の portable EXE。WSL でのみ動くことは合格としない。
+
+## コマンド
+- Node は開発機では `~/.local/opt/node/bin` に配置（`export PATH=~/.local/opt/node/bin:$PATH`）。
+- `npm run typecheck` / `npm run lint` / `npm test`（Vitest: 単体・統合）/ `npm run test:e2e`（ビルド＋Playwright で Electron を起動）。
+- E2E はダイアログを `FACET_E2E=1` 時のみスタブ化（`tests/e2e/fixtures.ts` の `setTestHook`）。パッケージ版は `FACET_EXECUTABLE=... npx playwright test`。
+- Windows portable EXE は Windows（または CI の windows-latest）で `npm run dist:win`。

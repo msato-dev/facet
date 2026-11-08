@@ -3,7 +3,13 @@ import fc from 'fast-check'
 import { applyCommand, type Command, type DropTarget } from '../../src/shared/domain/commands'
 import { checkInvariants } from '../../src/shared/domain/invariants'
 import { computeNumbering, sectionBreadcrumb } from '../../src/shared/domain/numbering'
-import { allGroups, allSections, findNoteLocation, groupedNoteIds, manuscriptNoteIds } from '../../src/shared/domain/structure'
+import {
+  allGroups,
+  allSections,
+  findNoteLocation,
+  groupedNoteIds,
+  manuscriptNoteIds,
+} from '../../src/shared/domain/structure'
 import { titleKey, validateTitle } from '../../src/shared/domain/titles'
 import { emptyState, run, sampleWorkspace, testContext } from '../fixtures/builders'
 
@@ -49,7 +55,13 @@ describe('numbering', () => {
     expect(n.label.get(ids.recharge)).toBe('3.1. Magma recharge')
     expect(sectionBreadcrumb(state.structure, ids.recharge)).toBe('3. Discussion › 3.1. Magma recharge')
     // Reorder: move Discussion before Introduction → numbers follow.
-    const moved = run(state, [{ type: 'section.move', id: ids.discussion, target: { kind: 'section', id: ids.intro, position: 'before' } }]).state
+    const moved = run(state, [
+      {
+        type: 'section.move',
+        id: ids.discussion,
+        target: { kind: 'section', id: ids.intro, position: 'before' },
+      },
+    ]).state
     const m = computeNumbering(moved.structure)
     expect(m.label.get(ids.discussion)).toBe('1. Discussion')
     expect(m.label.get(ids.intro)).toBe('2. Introduction')
@@ -67,7 +79,9 @@ describe('numbering', () => {
 describe('moves (UI-09, DAT-04)', () => {
   it('moves a note from paragraph A to B without duplicating it', () => {
     const { state, ids } = sampleWorkspace()
-    const r = run(state, [{ type: 'note.move', id: ids.n6, target: { kind: 'group', id: ids.p5, position: 'inside' } }])
+    const r = run(state, [
+      { type: 'note.move', id: ids.n6, target: { kind: 'group', id: ids.p5, position: 'inside' } },
+    ])
     const all = allGroups(r.state.structure).flatMap((g) => g.group.noteIds)
     expect(all.filter((x) => x === ids.n6)).toHaveLength(1)
     expect(findNoteLocation(r.state.structure, ids.n6)?.group.id).toBe(ids.p5)
@@ -75,13 +89,17 @@ describe('moves (UI-09, DAT-04)', () => {
 
   it('reorders notes within a paragraph before/after', () => {
     const { state, ids } = sampleWorkspace()
-    const r = run(state, [{ type: 'note.move', id: ids.n4, target: { kind: 'note', id: ids.n3, position: 'before' } }])
+    const r = run(state, [
+      { type: 'note.move', id: ids.n4, target: { kind: 'note', id: ids.n3, position: 'before' } },
+    ])
     expect(findNoteLocation(r.state.structure, ids.n3)?.group.noteIds).toEqual([ids.n4, ids.n3])
   })
 
   it('places an unassigned note and unplaces it again', () => {
     const { state, ids } = sampleWorkspace()
-    const placed = run(state, [{ type: 'note.move', id: ids.n9, target: { kind: 'note', id: ids.n7, position: 'after' } }]).state
+    const placed = run(state, [
+      { type: 'note.move', id: ids.n9, target: { kind: 'note', id: ids.n7, position: 'after' } },
+    ]).state
     expect(findNoteLocation(placed.structure, ids.n9)?.group.id).toBe(ids.p2)
     const back = run(placed, [{ type: 'note.move', id: ids.n9, target: { kind: 'unassigned' } }]).state
     expect(findNoteLocation(back.structure, ids.n9)).toBeNull()
@@ -90,22 +108,49 @@ describe('moves (UI-09, DAT-04)', () => {
 
   it('moves a subsection to another parent section, with descendants', () => {
     const { state, ids } = sampleWorkspace()
-    const r = run(state, [{ type: 'section.move', id: ids.background, target: { kind: 'section', id: ids.methods, position: 'inside' } }])
+    const r = run(state, [
+      {
+        type: 'section.move',
+        id: ids.background,
+        target: { kind: 'section', id: ids.methods, position: 'inside' },
+      },
+    ])
     expect(computeNumbering(r.state.structure).label.get(ids.background)).toBe('2.1. Background')
-    expect(findNoteLocation(r.state.structure, ids.n6)?.groupLocation.path.map((s) => s.id)).toEqual([ids.methods, ids.background])
+    expect(findNoteLocation(r.state.structure, ids.n6)?.groupLocation.path.map((s) => s.id)).toEqual([
+      ids.methods,
+      ids.background,
+    ])
   })
 
   it('refuses to move a section into its own descendant (cycle)', () => {
     const { state, ids } = sampleWorkspace()
-    const r = applyCommand(state, { type: 'section.move', id: ids.discussion, target: { kind: 'section', id: ids.recharge, position: 'inside' } }, testContext())
+    const r = applyCommand(
+      state,
+      {
+        type: 'section.move',
+        id: ids.discussion,
+        target: { kind: 'section', id: ids.recharge, position: 'inside' },
+      },
+      testContext(),
+    )
     expect(r.ok).toBe(false)
-    const self = applyCommand(state, { type: 'section.move', id: ids.discussion, target: { kind: 'section', id: ids.discussion, position: 'inside' } }, testContext())
+    const self = applyCommand(
+      state,
+      {
+        type: 'section.move',
+        id: ids.discussion,
+        target: { kind: 'section', id: ids.discussion, position: 'inside' },
+      },
+      testContext(),
+    )
     expect(self.ok).toBe(false)
   })
 
   it('moves a paragraph group to another section with its notes', () => {
     const { state, ids } = sampleWorkspace()
-    const r = run(state, [{ type: 'group.move', id: ids.p1, target: { kind: 'section', id: ids.discussion, position: 'inside' } }])
+    const r = run(state, [
+      { type: 'group.move', id: ids.p1, target: { kind: 'section', id: ids.discussion, position: 'inside' } },
+    ])
     const loc = findNoteLocation(r.state.structure, ids.n8)!
     expect(loc.group.id).toBe(ids.p1)
     expect(loc.groupLocation.path.map((s) => s.id)).toEqual([ids.discussion])
@@ -113,14 +158,23 @@ describe('moves (UI-09, DAT-04)', () => {
 
   it('refuses groups at the document root', () => {
     const { state, ids } = sampleWorkspace()
-    const r = applyCommand(state, { type: 'group.move', id: ids.p1, target: { kind: 'section', id: ids.intro, position: 'before' } }, testContext())
+    const r = applyCommand(
+      state,
+      { type: 'group.move', id: ids.p1, target: { kind: 'section', id: ids.intro, position: 'before' } },
+      testContext(),
+    )
     expect(r.ok).toBe(false)
   })
 
   it('deleting a section keeps its notes and lifts children', () => {
     const { state, ids } = sampleWorkspace()
     const r = run(state, [{ type: 'section.delete', id: ids.discussion }]).state
-    expect(allSections(r.structure).map((s) => s.title)).toEqual(['Introduction', 'Background', 'Methods', 'Magma recharge'])
+    expect(allSections(r.structure).map((s) => s.title)).toEqual([
+      'Introduction',
+      'Background',
+      'Methods',
+      'Magma recharge',
+    ])
     expect(Object.keys(r.notes)).toHaveLength(6)
     const r2 = run(state, [{ type: 'section.delete', id: ids.methods }]).state
     expect(r2.structure.unplacedGroups.map((g) => g.id)).toEqual([ids.p2])
@@ -149,10 +203,18 @@ describe('conflicts', () => {
   it('rejects body updates based on a stale revision', () => {
     const { state, ids } = sampleWorkspace()
     const rev = state.notes[ids.n3].rev
-    const ok = applyCommand(state, { type: 'note.updateBody', id: ids.n3, body: 'x', baseRev: rev }, testContext())
+    const ok = applyCommand(
+      state,
+      { type: 'note.updateBody', id: ids.n3, body: 'x', baseRev: rev },
+      testContext(),
+    )
     expect(ok.ok).toBe(true)
     if (!ok.ok) return
-    const stale = applyCommand(ok.state, { type: 'note.updateBody', id: ids.n3, body: 'y', baseRev: rev }, testContext())
+    const stale = applyCommand(
+      ok.state,
+      { type: 'note.updateBody', id: ids.n3, body: 'y', baseRev: rev },
+      testContext(),
+    )
     expect(stale.ok).toBe(false)
     if (!stale.ok) expect(stale.error.code).toBe('conflict')
   })
@@ -176,8 +238,15 @@ describe('property: random operation sequences keep invariants', () => {
       fc.record({ type: fc.constant('note.move' as const), id: fc.constantFrom(...noteIds), target }),
       fc.record({ type: fc.constant('group.move' as const), id: fc.constantFrom(...groupIds), target }),
       fc.record({ type: fc.constant('section.move' as const), id: fc.constantFrom(...sectionIds), target }),
-      fc.record({ type: fc.constant('note.archive' as const), ids: fc.constantFrom(...noteIds).map((x) => [x]) }),
-      fc.record({ type: fc.constant('note.unarchive' as const), ids: fc.constantFrom(...noteIds).map((x) => [x]), restorePlacement: fc.boolean() }),
+      fc.record({
+        type: fc.constant('note.archive' as const),
+        ids: fc.constantFrom(...noteIds).map((x) => [x]),
+      }),
+      fc.record({
+        type: fc.constant('note.unarchive' as const),
+        ids: fc.constantFrom(...noteIds).map((x) => [x]),
+        restorePlacement: fc.boolean(),
+      }),
     )
     fc.assert(
       fc.property(fc.array(cmd, { maxLength: 40 }), (cmds) => {

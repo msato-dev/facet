@@ -45,7 +45,11 @@ export function displayText(link: Pick<WikiLinkMatch, 'target' | 'alias'>): stri
 }
 
 /** Replace links whose target equals oldTitle (by titleKey) with newTitle, keeping aliases. */
-export function renameWikiLinks(md: string, oldTitle: string, newTitle: string): { text: string; count: number } {
+export function renameWikiLinks(
+  md: string,
+  oldTitle: string,
+  newTitle: string,
+): { text: string; count: number } {
   const key = titleKey(oldTitle)
   const links = findWikiLinks(md).filter((l) => titleKey(l.target) === key)
   if (!links.length) return { text: md, count: 0 }
@@ -109,7 +113,8 @@ export function brokenLinks(notes: Record<NoteId, Note>): Array<{ noteId: NoteId
   const out: Array<{ noteId: NoteId; target: string }> = []
   for (const n of Object.values(notes)) {
     if (!n.body.includes('[[')) continue
-    for (const l of findWikiLinks(n.body)) if (!resolveLink(idx, l.target)) out.push({ noteId: n.id, target: l.target })
+    for (const l of findWikiLinks(n.body))
+      if (!resolveLink(idx, l.target)) out.push({ noteId: n.id, target: l.target })
   }
   return out
 }

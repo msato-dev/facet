@@ -10,7 +10,10 @@ export interface MenuItem {
 
 const useMenu = create<{ menu: { x: number; y: number; items: MenuItem[] } | null }>(() => ({ menu: null }))
 
-export function openContextMenu(e: { clientX: number; clientY: number; preventDefault(): void; stopPropagation?(): void }, items: MenuItem[]): void {
+export function openContextMenu(
+  e: { clientX: number; clientY: number; preventDefault(): void; stopPropagation?(): void },
+  items: MenuItem[],
+): void {
   e.preventDefault()
   e.stopPropagation?.()
   useMenu.setState({ menu: { x: e.clientX, y: e.clientY, items } })

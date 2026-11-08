@@ -1,7 +1,17 @@
 // User-level operations shared by Canvas, Outline and Cards.
 import type { Point } from '../../shared/domain/types'
 import { findNoteLocation, manuscriptNoteIds } from '../../shared/domain/structure'
-import { confirmAction, exec, openDialog, promptText, selectNote, targetNoteIds, toast, undo, useApp } from './store'
+import {
+  confirmAction,
+  exec,
+  openDialog,
+  promptText,
+  selectNote,
+  targetNoteIds,
+  toast,
+  undo,
+  useApp,
+} from './store'
 
 const get = useApp.getState
 
@@ -16,12 +26,24 @@ export async function createNote(opts: { groupId?: string; canvasPos?: Point } =
   return r.info.createdId
 }
 
-export async function createGroup(opts: { sectionId?: string | null; canvasPos?: Point; noteIds?: string[] } = {}): Promise<string | null> {
-  const title = await promptText('Paragraph Group', { label: 'タイトル（原稿には出力されません）', okLabel: '作成' })
+export async function createGroup(
+  opts: { sectionId?: string | null; canvasPos?: Point; noteIds?: string[] } = {},
+): Promise<string | null> {
+  const title = await promptText('Paragraph Group', {
+    label: 'タイトル（原稿には出力されません）',
+    okLabel: '作成',
+  })
   if (title === null) return null
   const scope = get().scope
-  const sectionId = opts.sectionId !== undefined ? opts.sectionId : scope !== 'all' && scope !== 'unassigned' ? scope : null
-  const r = await exec({ type: 'group.create', title, sectionId, noteIds: opts.noteIds, canvasPos: opts.canvasPos })
+  const sectionId =
+    opts.sectionId !== undefined ? opts.sectionId : scope !== 'all' && scope !== 'unassigned' ? scope : null
+  const r = await exec({
+    type: 'group.create',
+    title,
+    sectionId,
+    noteIds: opts.noteIds,
+    canvasPos: opts.canvasPos,
+  })
   if (!r.ok) return null
   useApp.setState({ selectedGroupId: r.info.createdId ?? null, multiSelect: false, selectedNoteIds: [] })
   toast(sectionId ? 'Paragraph Groupを作成しました' : 'Paragraph Groupを作成しました（章節未配置）')
@@ -29,7 +51,10 @@ export async function createGroup(opts: { sectionId?: string | null; canvasPos?:
 }
 
 export async function createSection(parentId: string | null): Promise<void> {
-  const title = await promptText(parentId ? '新しい節' : '新しい章', { label: 'タイトル（番号は自動）', okLabel: '作成' })
+  const title = await promptText(parentId ? '新しい節' : '新しい章', {
+    label: 'タイトル（番号は自動）',
+    okLabel: '作成',
+  })
   if (title === null) return
   await exec({ type: 'section.create', title, parentId })
 }
@@ -40,7 +65,9 @@ export async function deleteNotes(ids = targetNoteIds()): Promise<void> {
   const titles = ids.map((id) => snap.state.notes[id]?.title).filter(Boolean)
   const ok = await confirmAction(
     'メモを削除',
-    ids.length === 1 ? `「${titles[0]}」を削除しますか？ Vault内のゴミ箱へ移動し、後で復元できます。` : `${ids.length}件のメモを削除しますか？ Vault内のゴミ箱へ移動します。`,
+    ids.length === 1
+      ? `「${titles[0]}」を削除しますか？ Vault内のゴミ箱へ移動し、後で復元できます。`
+      : `${ids.length}件のメモを削除しますか？ Vault内のゴミ箱へ移動します。`,
     { okLabel: '削除', danger: true },
   )
   if (!ok) return
@@ -56,12 +83,22 @@ export async function toggleArchive(ids = targetNoteIds()): Promise<void> {
   const allArchived = ids.every((id) => snap.state.notes[id]?.archived)
   if (allArchived) {
     const restorable = ids.some((id) => snap.state.notes[id]?.lastPlacement)
-    const restore = restorable ? await confirmAction('アーカイブを解除', '元のParagraph Groupの位置へ戻しますか？（キャンセルで未配置として復元）', { okLabel: '元の位置へ戻す' }) : false
+    const restore = restorable
+      ? await confirmAction(
+          'アーカイブを解除',
+          '元のParagraph Groupの位置へ戻しますか？（キャンセルで未配置として復元）',
+          { okLabel: '元の位置へ戻す' },
+        )
+      : false
     const r = await exec({ type: 'note.unarchive', ids, restorePlacement: restore })
     if (r.ok) toast('アーカイブを解除しました')
   } else {
     const r = await exec({ type: 'note.archive', ids: ids.filter((id) => !snap.state.notes[id]?.archived) })
-    if (r.ok) toast('メモをアーカイブしました（Cardsの「Archived」で表示・復元できます）', 'info', { label: 'Undo', run: () => void undo() })
+    if (r.ok)
+      toast('メモをアーカイブしました（Cardsの「Archived」で表示・復元できます）', 'info', {
+        label: 'Undo',
+        run: () => void undo(),
+      })
   }
 }
 

@@ -63,7 +63,10 @@ export function matchesPatch(state: DomainState, expected: StatePatch): boolean 
  * Apply `target` (values to restore), bumping note revisions so editors holding an older
  * revision can never silently overwrite restored content. Returns the patch actually applied.
  */
-export function restorePatch(state: DomainState, target: StatePatch): { state: DomainState; applied: StatePatch } {
+export function restorePatch(
+  state: DomainState,
+  target: StatePatch,
+): { state: DomainState; applied: StatePatch } {
   const notes: Record<NoteId, Note | null> = {}
   for (const [id, n] of Object.entries(target.notes)) {
     const current = state.notes[id]

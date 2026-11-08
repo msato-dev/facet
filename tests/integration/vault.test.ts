@@ -43,12 +43,22 @@ describe('vault persistence (DAT-05)', () => {
     let st = loaded.state
     st = step(st, { type: 'section.create', title: 'Introduction', parentId: null })
     const sec = st.structure.root.children[0].id
-    st = step(st, { type: 'note.create', title: '逆累帯構造', body: '斜長石の逆累帯構造 [@Smith2024]', tags: ['Petrology'] })
+    st = step(st, {
+      type: 'note.create',
+      title: '逆累帯構造',
+      body: '斜長石の逆累帯構造 [@Smith2024]',
+      tags: ['Petrology'],
+    })
     const nid = Object.keys(st.notes)[0]
-    st = step(st, { type: 'group.create', title: 'Obs', sectionId: sec, noteIds: [nid], canvasPos: { x: 120, y: 80 } })
-    let prev = loaded.state
+    st = step(st, {
+      type: 'group.create',
+      title: 'Obs',
+      sectionId: sec,
+      noteIds: [nid],
+      canvasPos: { x: 120, y: 80 },
+    })
+    const prev = loaded.state
     await repo.persist(prev, st)
-    prev = st
 
     const md = await readFile(path.join(repo.root, 'notes', `${nid}.md`), 'utf8')
     expect(md).toBe('# 逆累帯構造\n\n斜長石の逆累帯構造 [@Smith2024]')
@@ -94,9 +104,15 @@ describe('vault persistence (DAT-05)', () => {
     await writeFile(path.join(repo.root, 'notes', 'hand written.md'), 'no heading here')
     await writeFile(path.join(repo.root, 'notes', 'other.md'), '# Proper title\n\nBody')
     const { loaded } = await VaultRepository.open(repo.root)
-    const titles = Object.values(loaded.state.notes).map((n) => n.title).sort()
+    const titles = Object.values(loaded.state.notes)
+      .map((n) => n.title)
+      .sort()
     expect(titles).toEqual(['Proper title', 'hand written'])
-    expect(loaded.issues.map((i) => i.kind).sort()).toEqual(['imported-orphan', 'imported-orphan', 'missing-title'])
+    expect(loaded.issues.map((i) => i.kind).sort()).toEqual([
+      'imported-orphan',
+      'imported-orphan',
+      'missing-title',
+    ])
     const again = await VaultRepository.open(repo.root)
     expect(again.loaded.issues.filter((i) => i.kind === 'imported-orphan')).toEqual([])
   })
@@ -105,11 +121,27 @@ describe('vault persistence (DAT-05)', () => {
     const { repo } = await newVault()
     await writeFile(
       path.join(repo.root, 'structure.json'),
-      JSON.stringify({ schemaVersion: 1, root: { children: [{ kind: 'section', id: 's1', title: 'A', children: [{ kind: 'group', id: 'g1', title: 'G', noteIds: ['ghost'] }] }] }, unplacedGroups: [] }),
+      JSON.stringify({
+        schemaVersion: 1,
+        root: {
+          children: [
+            {
+              kind: 'section',
+              id: 's1',
+              title: 'A',
+              children: [{ kind: 'group', id: 'g1', title: 'G', noteIds: ['ghost'] }],
+            },
+          ],
+        },
+        unplacedGroups: [],
+      }),
     )
     const { loaded } = await VaultRepository.open(repo.root)
     expect(loaded.issues.some((i) => i.kind === 'invalid-structure-ref')).toBe(true)
-    expect(JSON.parse(await readFile(path.join(repo.root, 'structure.json'), 'utf8')).root.children[0].children[0].noteIds).toEqual([])
+    expect(
+      JSON.parse(await readFile(path.join(repo.root, 'structure.json'), 'utf8')).root.children[0].children[0]
+        .noteIds,
+    ).toEqual([])
   })
 })
 
@@ -141,7 +173,16 @@ describe('multi-file transactions', () => {
     await mkdir(path.join(jdir, 'tx1'), { recursive: true })
     await writeFile(path.join(jdir, 'tx1', '0.bak'), '# A\n\noriginal')
     await writeFile(file, '# A\n\nhalf-written')
-    await writeFile(path.join(jdir, 'tx1.json'), JSON.stringify({ id: 'tx1', createdAt: '', ops: [{ type: 'write', target: file, tmp: file + '.facet-tmp', backup: path.join(jdir, 'tx1', '0.bak') }] }))
+    await writeFile(
+      path.join(jdir, 'tx1.json'),
+      JSON.stringify({
+        id: 'tx1',
+        createdAt: '',
+        ops: [
+          { type: 'write', target: file, tmp: file + '.facet-tmp', backup: path.join(jdir, 'tx1', '0.bak') },
+        ],
+      }),
+    )
     const { loaded: l2 } = await VaultRepository.open(repo.root)
     expect(l2.state.notes[id].body).toBe('original')
     expect(l2.issues.some((i) => i.kind === 'recovered-journal')).toBe(true)
@@ -211,14 +252,24 @@ describe('workspace manager & settings (DAT-06, UI-14)', () => {
   })
 
   it('searches across workspaces (Japanese and English) and copies notes independently', async () => {
-    const manager = new WorkspaceManager(SettingsStore.forDir(path.join(tmp, 'ud')), () => undefined, { watch: false })
+    const manager = new WorkspaceManager(SettingsStore.forDir(path.join(tmp, 'ud')), () => undefined, {
+      watch: false,
+    })
     await manager.init()
     await mkdir(path.join(tmp, 'A'))
     await mkdir(path.join(tmp, 'B'))
     const a = (await manager.addWorkspace(path.join(tmp, 'A'), 'Zao')).workspace!
     const b = (await manager.addWorkspace(path.join(tmp, 'B'), 'Chamber')).workspace!
-    await manager.session(a.id)!.execute({ type: 'note.create', title: 'Recharge frequency', body: 'マグマ溜まりへの再注入の頻度' })
-    await manager.session(b.id)!.execute({ type: 'note.create', title: 'Recharge frequency', body: 'Injection events modify the thermal evolution.' })
+    await manager
+      .session(a.id)!
+      .execute({ type: 'note.create', title: 'Recharge frequency', body: 'マグマ溜まりへの再注入の頻度' })
+    await manager
+      .session(b.id)!
+      .execute({
+        type: 'note.create',
+        title: 'Recharge frequency',
+        body: 'Injection events modify the thermal evolution.',
+      })
     const hits = manager.searchAll('recharge')
     expect(hits.map((h) => h.workspaceName).sort()).toEqual(['Chamber', 'Zao'])
     expect(manager.searchAll('再注入').map((h) => h.workspaceName)).toEqual(['Zao'])

@@ -30,13 +30,18 @@ export class SearchIndex {
   setWorkspace(ws: WorkspaceId, name: string, notes: Record<NoteId, Note>): void {
     this.removeWorkspace(ws)
     this.names.set(ws, name)
-    this.ms.addAll(Object.values(notes).filter((n) => !n.archived).map((n) => this.doc(ws, n)))
+    this.ms.addAll(
+      Object.values(notes)
+        .filter((n) => !n.archived)
+        .map((n) => this.doc(ws, n)),
+    )
   }
 
   removeWorkspace(ws: WorkspaceId): void {
     const ids: string[] = []
     // MiniSearch has no prefix-delete; collect our keys via a wildcard search.
-    for (const r of this.ms.search(MiniSearch.wildcard, { filter: (r) => r.workspaceId === ws })) ids.push(String(r.id))
+    for (const r of this.ms.search(MiniSearch.wildcard, { filter: (r) => r.workspaceId === ws }))
+      ids.push(String(r.id))
     if (ids.length) this.ms.discardAll(ids)
     this.names.delete(ws)
   }
@@ -50,7 +55,14 @@ export class SearchIndex {
   }
 
   private doc(ws: WorkspaceId, n: Note): Doc {
-    return { id: this.key(ws, n.id), workspaceId: ws, noteId: n.id, title: n.title, body: n.body, tags: n.tags.join(' ') }
+    return {
+      id: this.key(ws, n.id),
+      workspaceId: ws,
+      noteId: n.id,
+      title: n.title,
+      body: n.body,
+      tags: n.tags.join(' '),
+    }
   }
 
   search(query: string, limit = 200): GlobalSearchHit[] {
@@ -65,7 +77,9 @@ export class SearchIndex {
         noteId: r.noteId as string,
         title: r.title as string,
         snippet: snippet(body, q),
-        tags: String(r.tags ?? '').split(' ').filter(Boolean),
+        tags: String(r.tags ?? '')
+          .split(' ')
+          .filter(Boolean),
         score: r.score,
       }
     })
@@ -75,7 +89,10 @@ export class SearchIndex {
 function snippet(body: string, query: string): string {
   const plain = body.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_m, t, a) => a ?? t).replace(/\s+/g, ' ')
   const norm = normalizeForSearch(plain)
-  const first = query.split(/\s+/).map(normalizeForSearch).find((t) => norm.includes(t))
+  const first = query
+    .split(/\s+/)
+    .map(normalizeForSearch)
+    .find((t) => norm.includes(t))
   const at = first ? norm.indexOf(first) : 0
   const start = Math.max(0, at - 40)
   return (start > 0 ? '…' : '') + plain.slice(start, start + 140) + (plain.length > start + 140 ? '…' : '')

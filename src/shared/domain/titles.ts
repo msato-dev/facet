@@ -32,7 +32,11 @@ export function findTitleConflict(
   return undefined
 }
 
-export function validateTitle(notes: Record<NoteId, Note>, title: string, exceptId?: NoteId): TitleError | null {
+export function validateTitle(
+  notes: Record<NoteId, Note>,
+  title: string,
+  exceptId?: NoteId,
+): TitleError | null {
   const syntax = validateTitleSyntax(title)
   if (syntax) return syntax
   return findTitleConflict(notes, title, exceptId) ? 'duplicate' : null

@@ -10,7 +10,13 @@ export function ReferenceView() {
   const selected = useApp((s) => (s.selectedNoteId ? s.snapshot?.state.notes[s.selectedNoteId] : undefined))
   const [q, setQ] = useState('')
   const bib = snapshot.bibliography
-  const rows = useMemo(() => bib.entries.filter((r) => matchesQuery(`${r.key} ${r.author} ${r.year} ${r.title} ${r.container} ${r.doi}`, q)), [bib.entries, q])
+  const rows = useMemo(
+    () =>
+      bib.entries.filter((r) =>
+        matchesQuery(`${r.key} ${r.author} ${r.year} ${r.title} ${r.container} ${r.doi}`, q),
+      ),
+    [bib.entries, q],
+  )
   const reload = async () => {
     await reloadSnapshot(await window.facet.reloadBibliography(snapshot.id))
     toast('BibTeXを再読込しました')
@@ -29,11 +35,21 @@ export function ReferenceView() {
         <span className="helper">{bib.entries.length} entries</span>
       </div>
       <p className="subheading">
-        WorkspaceのBibTeX（Zotero等からエクスポート、読み取り専用）: <span className="mono" data-testid="bib-source">{bib.source}</span>
+        WorkspaceのBibTeX（Zotero等からエクスポート、読み取り専用）:{' '}
+        <span className="mono" data-testid="bib-source">
+          {bib.source}
+        </span>
         {bib.loadedAt && <> · 読込 {new Date(bib.loadedAt).toLocaleTimeString()}</>}
       </p>
       <div className="viewbar">
-        <input className="input" style={{ maxWidth: 420 }} data-testid="reference-search" placeholder="著者・年・タイトル・引用キー・DOIで検索…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input
+          className="input"
+          style={{ maxWidth: 420 }}
+          data-testid="reference-search"
+          placeholder="著者・年・タイトル・引用キー・DOIで検索…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
         <button className="btn primary" data-testid="insert-citation" onClick={() => openCitation()}>
           ❞ Insert Citation
         </button>
@@ -97,7 +113,11 @@ export function ReferenceView() {
           ))}
         </tbody>
       </table>
-      {rows.length === 0 && <div className="empty">{bib.entries.length ? '該当する文献がありません' : 'BibTeXが読み込まれていません'}</div>}
+      {rows.length === 0 && (
+        <div className="empty">
+          {bib.entries.length ? '該当する文献がありません' : 'BibTeXが読み込まれていません'}
+        </div>
+      )}
     </div>
   )
 }

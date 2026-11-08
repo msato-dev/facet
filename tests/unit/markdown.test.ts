@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { applyCommand } from '../../src/shared/domain/commands'
 import { separatorBetween, joinFragments } from '../../src/shared/markdown/join'
-import { generateManuscript, manuscriptToMarkdown, prepareNoteBody } from '../../src/shared/markdown/manuscript'
+import {
+  generateManuscript,
+  manuscriptToMarkdown,
+  prepareNoteBody,
+} from '../../src/shared/markdown/manuscript'
 import { brokenLinks, findWikiLinks, linkInfo, renameWikiLinks } from '../../src/shared/markdown/wikilink'
 import { run, sampleWorkspace, testContext } from '../fixtures/builders'
 
@@ -32,14 +36,20 @@ describe('WikiLinks (DAT-02)', () => {
 
   it('updates referring notes on rename and detects broken links', () => {
     const { state, ids } = sampleWorkspace()
-    const r = applyCommand(state, { type: 'note.rename', id: ids.n4, title: 'Mush remobilization' }, testContext())
+    const r = applyCommand(
+      state,
+      { type: 'note.rename', id: ids.n4, title: 'Mush remobilization' },
+      testContext(),
+    )
     expect(r.ok).toBe(true)
     if (!r.ok) return
     expect(r.state.notes[ids.n3].body).toContain('[[Mush remobilization]]')
     expect(r.info.updatedLinks).toBe(1)
     expect(linkInfo(r.state.notes, ids.n4).backlinks).toEqual([ids.n3])
     expect(brokenLinks(r.state.notes)).toEqual([])
-    const broken = run(r.state, [{ type: 'note.updateBody', id: ids.n6, body: 'See [[Nowhere]]', baseRev: null }]).state
+    const broken = run(r.state, [
+      { type: 'note.updateBody', id: ids.n6, body: 'See [[Nowhere]]', baseRev: null },
+    ]).state
     expect(brokenLinks(broken.notes)).toEqual([{ noteId: ids.n6, target: 'Nowhere' }])
   })
 })
@@ -49,7 +59,9 @@ describe('joining rules', () => {
     expect(separatorBetween('Hello.', 'World')).toBe(' ')
     expect(separatorBetween('日本語の文', 'です')).toBe('')
     expect(separatorBetween('文です。', 'Next')).toBe('')
-    expect(joinFragments(['マグマ溜まりの', '再活性化を示す。', 'This is it.'])).toBe('マグマ溜まりの再活性化を示す。This is it.')
+    expect(joinFragments(['マグマ溜まりの', '再活性化を示す。', 'This is it.'])).toBe(
+      'マグマ溜まりの再活性化を示す。This is it.',
+    )
   })
 })
 
@@ -96,7 +108,9 @@ describe('manuscript (DAT-03)', () => {
 
   it('follows outline order changes', () => {
     const { state, ids } = sampleWorkspace()
-    const moved = run(state, [{ type: 'note.move', id: ids.n8, target: { kind: 'note', id: ids.n6, position: 'before' } }]).state
+    const moved = run(state, [
+      { type: 'note.move', id: ids.n8, target: { kind: 'note', id: ids.n6, position: 'before' } },
+    ]).state
     const md = manuscriptToMarkdown(generateManuscript(moved))
     expect(md.indexOf('Previous work')).toBeLessThan(md.indexOf('Constraining'))
   })

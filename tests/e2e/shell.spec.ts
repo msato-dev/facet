@@ -4,7 +4,12 @@ import { launch, setupEnv } from './fixtures'
 async function paneEdges(page: Page) {
   const left = await page.getByTestId('left-pane').boundingBox()
   const right = await page.getByTestId('right-pane').boundingBox()
-  return { leftRight: Math.round(left!.x + left!.width), rightLeft: Math.round(right!.x), leftW: Math.round(left!.width), rightW: Math.round(right!.width) }
+  return {
+    leftRight: Math.round(left!.x + left!.width),
+    rightLeft: Math.round(right!.x),
+    leftW: Math.round(left!.width),
+    rightW: Math.round(right!.width),
+  }
 }
 
 test('UI-01 common header: brand + expansion, 4 tabs, Search, Settings; workspace switch above Sections', async () => {

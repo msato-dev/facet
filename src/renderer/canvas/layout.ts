@@ -56,9 +56,18 @@ export function freeLayout(state: DomainState): CanvasLayout {
   allGroups(state.structure).forEach((gl, i) => {
     const pos = canvas.groups[gl.group.id] ?? { x: 80 + (i % 3) * 380, y: 80 + Math.floor(i / 3) * 460 }
     const parent = gl.parent
-    const crumb = parent.type === 'section' ? sectionBreadcrumb(state.structure, parent.id) : 'Unassigned · 章節未配置'
+    const crumb =
+      parent.type === 'section' ? sectionBreadcrumb(state.structure, parent.id) : 'Unassigned · 章節未配置'
     const expanded = !collapsed.has(gl.group.id)
-    groups.push({ kind: 'group', id: `g:${gl.group.id}`, group: gl.group, x: pos.x, y: pos.y, crumb, expanded })
+    groups.push({
+      kind: 'group',
+      id: `g:${gl.group.id}`,
+      group: gl.group,
+      x: pos.x,
+      y: pos.y,
+      crumb,
+      expanded,
+    })
     maxBottom = Math.max(maxBottom, pos.y + estimateGroupHeight(gl.group, expanded))
   })
   const grouped = groupedNoteIds(state.structure)
@@ -67,7 +76,10 @@ export function freeLayout(state: DomainState): CanvasLayout {
     .filter((n) => !n.archived && !grouped.has(n.id))
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
     .forEach((n, i) => {
-      const pos = canvas.looseNotes[n.id] ?? { x: 80 + (i % 5) * 262, y: maxBottom + 60 + Math.floor(i / 5) * 200 }
+      const pos = canvas.looseNotes[n.id] ?? {
+        x: 80 + (i % 5) * 262,
+        y: maxBottom + 60 + Math.floor(i / 5) * 200,
+      }
       loose.push({ kind: 'loose', id: `n:${n.id}`, noteId: n.id, x: pos.x, y: pos.y })
     })
   return { mode: 'free', groups, loose, headers: [], edges: [] }
@@ -91,7 +103,15 @@ export function treeLayout(state: DomainState, sectionId: string): CanvasLayout 
     groups.forEach((g, j) => {
       const expanded = !collapsed.has(g.id)
       const gid = `g:${g.id}`
-      out.groups.push({ kind: 'group', id: gid, group: g, x: x + 40 + j * (GROUP_WIDTH + 36), y: y + 74, crumb: sectionBreadcrumb(state.structure, s.id), expanded })
+      out.groups.push({
+        kind: 'group',
+        id: gid,
+        group: g,
+        x: x + 40 + j * (GROUP_WIDTH + 36),
+        y: y + 74,
+        crumb: sectionBreadcrumb(state.structure, s.id),
+        expanded,
+      })
       out.edges.push({ id: `e:${hid}-${gid}`, source: hid, target: gid })
       rowHeight = Math.max(rowHeight, 74 + estimateGroupHeight(g, expanded))
     })

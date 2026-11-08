@@ -1,10 +1,27 @@
 // Electron main process: window, security, IPC (SPEC §9.1).
-import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, session, shell, type IpcMainInvokeEvent } from 'electron'
+import {
+  app,
+  BrowserWindow,
+  clipboard,
+  dialog,
+  ipcMain,
+  Menu,
+  session,
+  shell,
+  type IpcMainInvokeEvent,
+} from 'electron'
 import { mkdir } from 'node:fs/promises'
 import path from 'node:path'
 import { z } from 'zod'
 import { CH } from '../shared/ipc/channels'
-import { zCommand, zId, zPanes, zVaultLocations, type InitialState, type WorkspaceEvent } from '../shared/ipc/contract'
+import {
+  zCommand,
+  zId,
+  zPanes,
+  zVaultLocations,
+  type InitialState,
+  type WorkspaceEvent,
+} from '../shared/ipc/contract'
 import { SettingsStore } from './settings/SettingsStore'
 import { writeFileAtomic } from './vault/atomic'
 import { WorkspaceManager } from './workspace/WorkspaceManager'
@@ -13,7 +30,10 @@ const E2E = process.env.FACET_E2E === '1'
 
 app.setName('FACET')
 // userData lives in %APPDATA%\FACET so the portable EXE can be moved freely (WIN-02).
-const userDataDir = E2E && process.env.FACET_USER_DATA ? process.env.FACET_USER_DATA : path.join(app.getPath('appData'), 'FACET')
+const userDataDir =
+  E2E && process.env.FACET_USER_DATA
+    ? process.env.FACET_USER_DATA
+    : path.join(app.getPath('appData'), 'FACET')
 app.setPath('userData', userDataDir)
 
 /** Test hooks: replace OS dialogs during automated E2E runs only. */
@@ -40,7 +60,11 @@ function isTrustedSender(e: IpcMainInvokeEvent): boolean {
   return url.startsWith('file://')
 }
 
-function handle<A extends unknown[]>(channel: string, schema: z.ZodType<A>, fn: (...args: A) => unknown): void {
+function handle<A extends unknown[]>(
+  channel: string,
+  schema: z.ZodType<A>,
+  fn: (...args: A) => unknown,
+): void {
   ipcMain.handle(channel, async (event, ...raw) => {
     if (!isTrustedSender(event)) throw new Error('Untrusted sender')
     const parsed = schema.safeParse(raw)
@@ -54,18 +78,32 @@ function registerIpc(): void {
   handle(CH.getInitialState, none, (): InitialState => {
     const s = manager.settings.data
     const workspaces = manager.summaries()
-    const active = workspaces.find((w) => w.id === s.lastWorkspaceId && w.status === 'ok') ?? workspaces.find((w) => w.status === 'ok')
-    return { workspaces, activeWorkspaceId: active?.id ?? null, panes: s.panes, version: app.getVersion(), e2e: E2E }
+    const active =
+      workspaces.find((w) => w.id === s.lastWorkspaceId && w.status === 'ok') ??
+      workspaces.find((w) => w.status === 'ok')
+    return {
+      workspaces,
+      activeWorkspaceId: active?.id ?? null,
+      panes: s.panes,
+      version: app.getVersion(),
+      e2e: E2E,
+    }
   })
   handle(CH.openWorkspace, z.tuple([zId]), (id) => {
     const s = manager.session(id)
-    return s ? { ok: true, snapshot: s.snapshot() } : { ok: false, message: manager.summaries().find((w) => w.id === id)?.error ?? 'Workspaceを開けません' }
+    return s
+      ? { ok: true, snapshot: s.snapshot() }
+      : { ok: false, message: manager.summaries().find((w) => w.id === id)?.error ?? 'Workspaceを開けません' }
   })
   handle(CH.execute, z.tuple([zId, zCommand]), (id, cmd) => manager.execute(id, (s) => s.execute(cmd)))
   handle(CH.undo, z.tuple([zId]), (id) => manager.execute(id, (s) => s.undo()))
   handle(CH.redo, z.tuple([zId]), (id) => manager.execute(id, (s) => s.redo()))
-  handle(CH.restoreFromTrash, z.tuple([zId, zId]), (id, noteId) => manager.execute(id, (s) => s.restoreFromTrash(noteId)))
-  handle(CH.copyNoteToWorkspace, z.tuple([zId, zId, zId]), (from, noteId, to) => manager.copyNote(from, noteId, to))
+  handle(CH.restoreFromTrash, z.tuple([zId, zId]), (id, noteId) =>
+    manager.execute(id, (s) => s.restoreFromTrash(noteId)),
+  )
+  handle(CH.copyNoteToWorkspace, z.tuple([zId, zId, zId]), (from, noteId, to) =>
+    manager.copyNote(from, noteId, to),
+  )
   handle(CH.searchAll, z.tuple([z.string().max(1000)]), (q) => manager.searchAll(q))
   handle(CH.copyText, z.tuple([z.string().max(20_000_000)]), (text) => clipboard.writeText(text))
   handle(CH.exportManuscript, z.tuple([zId, z.string().max(20_000_000)]), async (id, markdown) => {
@@ -76,7 +114,11 @@ function registerIpc(): void {
     if (E2E) target = testHooks.saveResult ?? defaultPath
     else {
       await mkdir(path.dirname(defaultPath), { recursive: true })
-      const r = await dialog.showSaveDialog(mainWindow!, { title: 'Export manuscript', defaultPath, filters: [{ name: 'Markdown', extensions: ['md'] }] })
+      const r = await dialog.showSaveDialog(mainWindow!, {
+        title: 'Export manuscript',
+        defaultPath,
+        filters: [{ name: 'Markdown', extensions: ['md'] }],
+      })
       target = r.canceled ? undefined : r.filePath
     }
     if (!target) return { ok: false, message: 'エクスポートをキャンセルしました' }
@@ -115,14 +157,26 @@ function registerIpc(): void {
     await mkdir(dir, { recursive: true })
     if (!E2E) await shell.openPath(dir)
   })
-  handle(CH.browseFolder, z.tuple([z.string().max(4096).optional()]) as unknown as z.ZodType<[string | undefined]>, async (defaultPath) => {
-    if (E2E) return testHooks.browseResult
-    const r = await dialog.showOpenDialog(mainWindow!, { title: 'Select vault folder', defaultPath, properties: ['openDirectory', 'createDirectory'] })
-    return r.canceled ? null : (r.filePaths[0] ?? null)
-  })
-  handle(CH.validateVaultPath, z.tuple([zId, z.string().max(4096)]), (id, p) => manager.validateLocation(id, p))
+  handle(
+    CH.browseFolder,
+    z.tuple([z.string().max(4096).optional()]) as unknown as z.ZodType<[string | undefined]>,
+    async (defaultPath) => {
+      if (E2E) return testHooks.browseResult
+      const r = await dialog.showOpenDialog(mainWindow!, {
+        title: 'Select vault folder',
+        defaultPath,
+        properties: ['openDirectory', 'createDirectory'],
+      })
+      return r.canceled ? null : (r.filePaths[0] ?? null)
+    },
+  )
+  handle(CH.validateVaultPath, z.tuple([zId, z.string().max(4096)]), (id, p) =>
+    manager.validateLocation(id, p),
+  )
   handle(CH.saveVaultLocations, z.tuple([zVaultLocations]), (paths) => manager.saveLocations(paths))
-  handle(CH.addWorkspace, z.tuple([z.string().max(4096), z.string().max(500)]), (p, name) => manager.addWorkspace(p, name))
+  handle(CH.addWorkspace, z.tuple([z.string().max(4096), z.string().max(500)]), (p, name) =>
+    manager.addWorkspace(p, name),
+  )
   handle(CH.removeWorkspace, z.tuple([zId]), (id) => manager.removeWorkspace(id))
   handle(CH.setPanes, z.tuple([zPanes]), async (panes) => {
     await manager.settings.update((d) => ({ ...d, panes }))
@@ -171,7 +225,9 @@ async function createWindow(): Promise<void> {
   const persistBounds = () => {
     if (!mainWindow) return
     const maximized = mainWindow.isMaximized()
-    const bounds = maximized ? (manager.settings.data.window.bounds ?? mainWindow.getBounds()) : mainWindow.getBounds()
+    const bounds = maximized
+      ? (manager.settings.data.window.bounds ?? mainWindow.getBounds())
+      : mainWindow.getBounds()
     void manager.settings.update((d) => ({ ...d, window: { bounds, maximized } }))
   }
   mainWindow.on('close', persistBounds)

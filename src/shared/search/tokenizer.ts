@@ -1,6 +1,6 @@
 // Tokenizer for mixed Japanese/English search: Latin words + CJK bigrams (ADR-005).
 
-const CJK_RUN = /[぀-ヿ㐀-䶿一-鿿豈-﫿가-힯]+/gu
+const CJK_RUN = /[\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\uAC00-\uD7AF]+/gu
 
 export function normalizeForSearch(text: string): string {
   return text.normalize('NFKC').toLocaleLowerCase('en-US')

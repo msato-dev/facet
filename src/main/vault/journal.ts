@@ -66,7 +66,8 @@ export async function runTransaction(root: string, ops: PlannedOp[]): Promise<vo
         await withRetry(() => rename(op.from, op.to))
       }
       applied++
-      if (journalTestHooks.failAfterOps !== null && applied >= journalTestHooks.failAfterOps) throw new Error('Injected failure')
+      if (journalTestHooks.failAfterOps !== null && applied >= journalTestHooks.failAfterOps)
+        throw new Error('Injected failure')
     }
   } catch (e) {
     await rollbackJournal(journalPath)

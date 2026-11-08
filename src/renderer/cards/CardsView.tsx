@@ -1,7 +1,12 @@
 // Cards: square responsive grid, search, sort, grouping, Outline filter (SPEC §5, UI-12).
 import { useMemo } from 'react'
 import { computeNumbering, sectionBreadcrumb } from '../../shared/domain/numbering'
-import { allSections, findNoteLocation, manuscriptNoteIds, sectionSubtreeIds } from '../../shared/domain/structure'
+import {
+  allSections,
+  findNoteLocation,
+  manuscriptNoteIds,
+  sectionSubtreeIds,
+} from '../../shared/domain/structure'
 import type { Note } from '../../shared/domain/types'
 import { matchesQuery } from '../../shared/search/tokenizer'
 import { openContextMenu } from '../common/ContextMenu'
@@ -9,11 +14,24 @@ import { copyNote, deleteNotes, toggleArchive } from '../store/actions'
 import { openDialog, selectNote, useApp, type CardsOptions } from '../store/store'
 
 export function excerpt(body: string, n = 160): string {
-  const t = body.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_m, a, b) => b ?? a).replace(/\s+/g, ' ').trim()
+  const t = body
+    .replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_m, a, b) => b ?? a)
+    .replace(/\s+/g, ' ')
+    .trim()
   return t.length > n ? t.slice(0, n) + '…' : t
 }
 
-export function NoteCard({ note, workspace, onOpen, extra }: { note: Note | { id: string; title: string; body: string; tags: string[]; archived?: boolean }; workspace?: string; onOpen: () => void; extra?: React.ReactNode }) {
+export function NoteCard({
+  note,
+  workspace,
+  onOpen,
+  extra,
+}: {
+  note: Note | { id: string; title: string; body: string; tags: string[]; archived?: boolean }
+  workspace?: string
+  onOpen: () => void
+  extra?: React.ReactNode
+}) {
   const selected = useApp((s) => s.selectedNoteId === note.id)
   return (
     <div
@@ -34,7 +52,11 @@ export function NoteCard({ note, workspace, onOpen, extra }: { note: Note | { id
       }
     >
       <h4>{note.title}</h4>
-      {workspace && <div className="helper ws-label" data-testid="card-workspace">{workspace}</div>}
+      {workspace && (
+        <div className="helper ws-label" data-testid="card-workspace">
+          {workspace}
+        </div>
+      )}
       <p>{excerpt(note.body)}</p>
       <div className="tags">
         {note.archived && <span className="tag archived-tag">Archived</span>}
@@ -53,7 +75,8 @@ export function CardsView() {
   const snapshot = useApp((s) => s.snapshot)!
   const scope = useApp((s) => s.scope)
   const opts = useApp((s) => s.cards)
-  const setOpt = (patch: Partial<CardsOptions>) => useApp.setState((s) => ({ cards: { ...s.cards, ...patch } }))
+  const setOpt = (patch: Partial<CardsOptions>) =>
+    useApp.setState((s) => ({ cards: { ...s.cards, ...patch } }))
   const { structure, notes } = snapshot.state
   const numbering = useMemo(() => computeNumbering(structure), [structure])
 
@@ -71,7 +94,11 @@ export function CardsView() {
       return matchesQuery(`${n.title}\n${n.body}\n${n.tags.join(' ')}`, opts.query)
     })
     list.sort((a, b) =>
-      opts.sort === 'title' ? a.title.localeCompare(b.title, 'ja') : opts.sort === 'newest' ? b.createdAt.localeCompare(a.createdAt) : a.createdAt.localeCompare(b.createdAt),
+      opts.sort === 'title'
+        ? a.title.localeCompare(b.title, 'ja')
+        : opts.sort === 'newest'
+          ? b.createdAt.localeCompare(a.createdAt)
+          : a.createdAt.localeCompare(b.createdAt),
     )
     const out = new Map<string, Note[]>()
     const push = (k: string, n: Note) => (out.get(k) ?? out.set(k, []).get(k)!).push(n)
@@ -79,7 +106,10 @@ export function CardsView() {
       if (opts.groupBy === 'tag') (n.tags.length ? n.tags : ['Untagged']).forEach((t) => push(t, n))
       else if (opts.groupBy === 'outline') {
         const parent = findNoteLocation(structure, n.id)?.groupLocation.parent
-        push(parent?.type === 'section' ? sectionBreadcrumb(structure, parent.id, numbering) : 'Unassigned', n)
+        push(
+          parent?.type === 'section' ? sectionBreadcrumb(structure, parent.id, numbering) : 'Unassigned',
+          n,
+        )
       } else push('All Notes', n)
     }
     return [...out.entries()]
@@ -93,13 +123,31 @@ export function CardsView() {
         <span className="helper">{total} notes</span>
       </div>
       <div className="searchline">
-        <input className="input grow" data-testid="cards-search" placeholder="Search notes, tags, links…" value={opts.query} onChange={(e) => setOpt({ query: e.target.value })} />
-        <select className="select" data-testid="cards-groupby" aria-label="Group by" value={opts.groupBy} onChange={(e) => setOpt({ groupBy: e.target.value as CardsOptions['groupBy'] })}>
+        <input
+          className="input grow"
+          data-testid="cards-search"
+          placeholder="Search notes, tags, links…"
+          value={opts.query}
+          onChange={(e) => setOpt({ query: e.target.value })}
+        />
+        <select
+          className="select"
+          data-testid="cards-groupby"
+          aria-label="Group by"
+          value={opts.groupBy}
+          onChange={(e) => setOpt({ groupBy: e.target.value as CardsOptions['groupBy'] })}
+        >
           <option value="tag">Group: Tags</option>
           <option value="outline">Group: Outline</option>
           <option value="none">Group: None</option>
         </select>
-        <select className="select" data-testid="cards-filter" aria-label="Outline filter" value={scope} onChange={(e) => useApp.setState({ scope: e.target.value })}>
+        <select
+          className="select"
+          data-testid="cards-filter"
+          aria-label="Outline filter"
+          value={scope}
+          onChange={(e) => useApp.setState({ scope: e.target.value })}
+        >
           <option value="all">Outline: All</option>
           <option value="unassigned">Unassigned</option>
           {allSections(structure).map((s) => (
@@ -109,13 +157,25 @@ export function CardsView() {
             </option>
           ))}
         </select>
-        <select className="select" data-testid="cards-sort" aria-label="Sort" value={opts.sort} onChange={(e) => setOpt({ sort: e.target.value as CardsOptions['sort'] })}>
+        <select
+          className="select"
+          data-testid="cards-sort"
+          aria-label="Sort"
+          value={opts.sort}
+          onChange={(e) => setOpt({ sort: e.target.value as CardsOptions['sort'] })}
+        >
           <option value="created">Oldest first</option>
           <option value="newest">Newest first</option>
           <option value="title">Title</option>
         </select>
         <label className="check">
-          <input type="checkbox" data-testid="cards-archived" checked={opts.showArchived} onChange={(e) => setOpt({ showArchived: e.target.checked })} /> Archived
+          <input
+            type="checkbox"
+            data-testid="cards-archived"
+            checked={opts.showArchived}
+            onChange={(e) => setOpt({ showArchived: e.target.checked })}
+          />{' '}
+          Archived
         </label>
         <button className="btn" data-testid="open-trash" onClick={() => openDialog({ kind: 'trash' })}>
           🗑 Trash ({snapshot.trash.length})

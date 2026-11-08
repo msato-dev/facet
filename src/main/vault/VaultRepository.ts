@@ -1,5 +1,5 @@
 // Vault I/O: load, reconcile, persist state diffs atomically, detect external edits.
-import { mkdir, readdir, readFile, rm } from 'node:fs/promises'
+import { mkdir, readdir, readFile, rm, stat } from 'node:fs/promises'
 import path from 'node:path'
 import YAML from 'yaml'
 import { defaultCanvasState } from '../../shared/domain/canvas'
@@ -7,8 +7,16 @@ import { diffState } from '../../shared/domain/history'
 import { isValidId, newId } from '../../shared/domain/ids'
 import { sanitizeStructure } from '../../shared/domain/sanitize'
 import { emptyStructure } from '../../shared/domain/structure'
-import type { CanvasState, DomainState, Note, NoteId, Structure, TrashEntry, VaultIssue } from '../../shared/domain/types'
-import { exists, stampOf, writeFileAtomic, type FileStamp } from './atomic'
+import type {
+  CanvasState,
+  DomainState,
+  Note,
+  NoteId,
+  Structure,
+  TrashEntry,
+  VaultIssue,
+} from '../../shared/domain/types'
+import { exists, sha256, stampOf, writeFileAtomic, type FileStamp } from './atomic'
 import { recoverJournals, runTransaction, type PlannedOp } from './journal'
 import { parseNoteFile, serializeNote } from './noteFile'
 import { realRootOf, resolveInVault } from './pathGuard'
@@ -80,7 +88,12 @@ export class VaultRepository {
     for (const f of [FILES.project, FILES.index, FILES.structure, FILES.canvas]) {
       if (await exists(path.join(root, f))) throw new VaultError(`${f} が既に存在します`, 'invalid-file')
     }
-    const project: ProjectFile = { schemaVersion: 1, workspaceId: newId(), name: name.trim() || path.basename(root), createdAt: nowIso() }
+    const project: ProjectFile = {
+      schemaVersion: 1,
+      workspaceId: newId(),
+      name: name.trim() || path.basename(root),
+      createdAt: nowIso(),
+    }
     await mkdir(path.join(root, FILES.notesDir), { recursive: true })
     await mkdir(path.join(root, 'references'), { recursive: true })
     await writeFileAtomic(path.join(root, FILES.structure), json(emptyStructure()))
@@ -117,9 +130,8 @@ export class VaultRepository {
   private async readText(rel: string): Promise<string | null> {
     const file = await this.abs(rel)
     try {
-      const buf = await readFile(file)
-      const st = await stampOf(file)
-      if (st) this.known.set(rel, st)
+      const [buf, st] = await Promise.all([readFile(file), stat(file)])
+      this.known.set(rel, { mtimeMs: st.mtimeMs, size: st.size, hash: sha256(buf) })
       return buf.toString('utf8')
     } catch (e) {
       if ((e as NodeJS.ErrnoException).code === 'ENOENT') {
@@ -130,7 +142,10 @@ export class VaultRepository {
     }
   }
 
-  private async readJson<T>(rel: string, schema: { safeParse(v: unknown): { success: true; data: T } | { success: false } }): Promise<T | null> {
+  private async readJson<T>(
+    rel: string,
+    schema: { safeParse(v: unknown): { success: true; data: T } | { success: false } },
+  ): Promise<T | null> {
     const text = await this.readText(rel)
     if (text === null) return null
     let data: unknown
@@ -147,16 +162,24 @@ export class VaultRepository {
   async load(): Promise<LoadedVault> {
     const issues: VaultIssue[] = []
     const recovered = await recoverJournals(this.root)
-    if (recovered) issues.push({ kind: 'recovered-journal', message: `中断された書込み ${recovered} 件をロールバックしました` })
+    if (recovered)
+      issues.push({
+        kind: 'recovered-journal',
+        message: `中断された書込み ${recovered} 件をロールバックしました`,
+      })
     this.known.clear()
     this.noteFiles.clear()
     const projectText = await this.readText(FILES.project)
-    if (projectText === null) throw new VaultError('project.yml が見つかりません。FACET Vaultではありません', 'not-a-vault')
+    if (projectText === null)
+      throw new VaultError('project.yml が見つかりません。FACET Vaultではありません', 'not-a-vault')
     const project = zProject.safeParse(YAML.parse(projectText))
     if (!project.success) throw new VaultError('project.yml の形式が正しくありません', 'invalid-file')
     this.project = project.data
 
-    const index: NotesIndexFile = (await this.readJson(FILES.index, zNotesIndex)) ?? { schemaVersion: 1, notes: {} }
+    const index: NotesIndexFile = (await this.readJson(FILES.index, zNotesIndex)) ?? {
+      schemaVersion: 1,
+      notes: {},
+    }
     const fileToId = new Map<string, NoteId>()
     for (const [id, meta] of Object.entries(index.notes)) fileToId.set(meta.file.replace(/\\/g, '/'), id)
 
@@ -170,8 +193,15 @@ export class VaultRepository {
       await mkdir(path.join(this.root, FILES.notesDir), { recursive: true })
     }
     const seen = new Set<NoteId>()
-    for (const rel of mdFiles.sort()) {
-      const content = await this.readText(rel)
+    const contents = new Map<string, string | null>()
+    const sorted = mdFiles.sort()
+    for (let i = 0; i < sorted.length; i += 64) {
+      const batch = sorted.slice(i, i + 64)
+      const texts = await Promise.all(batch.map((rel) => this.readText(rel)))
+      batch.forEach((rel, j) => contents.set(rel, texts[j]))
+    }
+    for (const rel of sorted) {
+      const content = contents.get(rel) ?? null
       if (content === null) continue
       const stem = path.basename(rel, path.extname(rel))
       let id = fileToId.get(rel)
@@ -181,10 +211,19 @@ export class VaultRepository {
         const st = this.known.get(rel)
         const t = st ? new Date(st.mtimeMs).toISOString() : nowIso()
         meta = { file: rel, tags: [], createdAt: t, updatedAt: t, archived: false, lastPlacement: null }
-        issues.push({ kind: 'imported-orphan', message: `インデックスにない ${rel} を取り込みました`, noteId: id })
+        issues.push({
+          kind: 'imported-orphan',
+          message: `インデックスにない ${rel} を取り込みました`,
+          noteId: id,
+        })
       }
       const parsed = parseNoteFile(content, stem)
-      if (!parsed.hasTitle) issues.push({ kind: 'missing-title', message: `${rel} の先頭に「# タイトル」がありません。ファイル名をタイトルとして扱います`, noteId: id })
+      if (!parsed.hasTitle)
+        issues.push({
+          kind: 'missing-title',
+          message: `${rel} の先頭に「# タイトル」がありません。ファイル名をタイトルとして扱います`,
+          noteId: id,
+        })
       notes[id] = {
         id,
         title: parsed.title,
@@ -200,14 +239,22 @@ export class VaultRepository {
       seen.add(id)
     }
     for (const [id, meta] of Object.entries(index.notes)) {
-      if (!seen.has(id)) issues.push({ kind: 'missing-note-file', message: `メモファイル ${meta.file} が見つかりません`, noteId: id })
+      if (!seen.has(id))
+        issues.push({
+          kind: 'missing-note-file',
+          message: `メモファイル ${meta.file} が見つかりません`,
+          noteId: id,
+        })
     }
 
     const rawStructure = ((await this.readJson(FILES.structure, zStructure)) ?? emptyStructure()) as Structure
     const canvas = ((await this.readJson(FILES.canvas, zCanvasState)) ?? defaultCanvasState()) as CanvasState
     const sanitized = sanitizeStructure({ notes, structure: rawStructure, canvas })
     issues.push(...sanitized.issues)
-    this.trashIndex = (await this.readJson(FILES.trashIndex, zTrashIndex)) ?? { schemaVersion: 1, entries: [] }
+    this.trashIndex = (await this.readJson(FILES.trashIndex, zTrashIndex)) ?? {
+      schemaVersion: 1,
+      entries: [],
+    }
 
     const state: DomainState = { notes, structure: sanitized.structure, canvas }
     const needsIndexWrite = issues.some((i) => i.kind === 'imported-orphan' || i.kind === 'missing-note-file')
@@ -222,7 +269,9 @@ export class VaultRepository {
 
   private buildIndex(state: DomainState): NotesIndexFile {
     const notes: NotesIndexFile['notes'] = {}
-    for (const n of Object.values(state.notes).sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id))) {
+    for (const n of Object.values(state.notes).sort(
+      (a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id),
+    )) {
       notes[n.id] = {
         file: this.noteFiles.get(n.id) ?? `${FILES.notesDir}/${n.id}.md`,
         tags: n.tags,
@@ -257,7 +306,12 @@ export class VaultRepository {
       if (current.size === knownStamp.size && current.mtimeMs === knownStamp.mtimeMs) continue
       if (current.hash !== knownStamp.hash) conflicts.push(rel)
     }
-    if (conflicts.length) throw new VaultError(`外部で変更されたファイルがあります: ${conflicts.join(', ')}`, 'conflict', conflicts)
+    if (conflicts.length)
+      throw new VaultError(
+        `外部で変更されたファイルがあります: ${conflicts.join(', ')}`,
+        'conflict',
+        conflicts,
+      )
   }
 
   /** Persist the difference between two states. Nothing is written if any target changed externally. */
@@ -276,7 +330,8 @@ export class VaultRepository {
         indexDirty = true
         const rel = newNoteFiles.get(id) ?? `${FILES.notesDir}/${id}.md`
         newNoteFiles.set(id, rel)
-        if (!before || before.title !== note.title || before.body !== note.body) writes.set(rel, serializeNote(note.title, note.body))
+        if (!before || before.title !== note.title || before.body !== note.body)
+          writes.set(rel, serializeNote(note.title, note.body))
         const tIdx = trash.entries.findIndex((e) => e.id === id)
         if (tIdx >= 0) {
           trash.entries.splice(tIdx, 1)
@@ -295,7 +350,14 @@ export class VaultRepository {
           title: before.title,
           deletedAt: nowIso(),
           file: trashRel,
-          meta: { file: rel, tags: before.tags, createdAt: before.createdAt, updatedAt: before.updatedAt, archived: before.archived, lastPlacement: null },
+          meta: {
+            file: rel,
+            tags: before.tags,
+            createdAt: before.createdAt,
+            updatedAt: before.updatedAt,
+            archived: before.archived,
+            lastPlacement: null,
+          },
         })
         trashDirty = true
       }
@@ -320,7 +382,8 @@ export class VaultRepository {
       await writeFileAtomic(await this.abs(rel), content)
     } else {
       const ops: PlannedOp[] = []
-      for (const m of moves) ops.push({ type: 'move', from: await this.abs(m.from), to: await this.abs(m.to) })
+      for (const m of moves)
+        ops.push({ type: 'move', from: await this.abs(m.from), to: await this.abs(m.to) })
       for (const [rel, content] of writes) ops.push({ type: 'write', abs: await this.abs(rel), content })
       await runTransaction(this.root, ops)
     }

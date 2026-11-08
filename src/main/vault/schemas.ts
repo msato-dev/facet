@@ -17,7 +17,10 @@ export const zNoteMeta = z.object({
   createdAt: z.string(),
   updatedAt: z.string(),
   archived: z.boolean().default(false),
-  lastPlacement: z.object({ groupId: z.string(), index: z.number().int().min(0) }).nullable().default(null),
+  lastPlacement: z
+    .object({ groupId: z.string(), index: z.number().int().min(0) })
+    .nullable()
+    .default(null),
 })
 export type NoteMetaFile = z.infer<typeof zNoteMeta>
 
@@ -58,7 +61,10 @@ export const zCanvasState = z.object({
       z.object({
         id: z.string(),
         name: z.string(),
-        viewport: z.object({ x: z.number(), y: z.number(), zoom: z.number().positive() }).nullable().default(null),
+        viewport: z
+          .object({ x: z.number(), y: z.number(), zoom: z.number().positive() })
+          .nullable()
+          .default(null),
         groups: z.record(z.string(), zPoint).default({}),
         collapsed: z.array(z.string()).default([]),
         looseNotes: z.record(z.string(), zPoint).default({}),
@@ -83,9 +89,13 @@ export type TrashIndexFile = z.infer<typeof zTrashIndex>
 
 export const zSettings = z.object({
   schemaVersion: z.literal(1),
-  workspaces: z.array(z.object({ id: z.string().min(1), name: z.string(), vaultPath: z.string() })).default([]),
+  workspaces: z
+    .array(z.object({ id: z.string().min(1), name: z.string(), vaultPath: z.string() }))
+    .default([]),
   lastWorkspaceId: z.string().nullable().default(null),
-  panes: z.object({ leftOpen: z.boolean(), rightOpen: z.boolean() }).default({ leftOpen: true, rightOpen: true }),
+  panes: z
+    .object({ leftOpen: z.boolean(), rightOpen: z.boolean() })
+    .default({ leftOpen: true, rightOpen: true }),
   window: z
     .object({
       bounds: z.object({ x: z.number(), y: z.number(), width: z.number(), height: z.number() }).nullable(),

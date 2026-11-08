@@ -1,13 +1,36 @@
 // Outline: full hierarchy, collapse, drag & drop, inline editing, Unassigned, manuscript split (SPEC §4).
-import { useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type DragEvent,
+  type KeyboardEvent,
+  type ReactNode,
+} from 'react'
 import type { DropPosition, DropTarget } from '../../shared/domain/commands'
 import { computeNumbering } from '../../shared/domain/numbering'
-import { allGroups, childrenOf, findGroup, findNoteLocation, findSection, groupedNoteIds, type ParentRef } from '../../shared/domain/structure'
+import {
+  allGroups,
+  childrenOf,
+  findGroup,
+  findNoteLocation,
+  findSection,
+  groupedNoteIds,
+  type ParentRef,
+} from '../../shared/domain/structure'
 import type { GroupNode, SectionNode } from '../../shared/domain/types'
 import { openContextMenu } from '../common/ContextMenu'
 import { MarkdownEditor } from '../editor/MarkdownEditor'
 import { TitleField } from '../editor/NoteEditor'
-import { createGroup, createNote, createSection, deleteNotes, toggleArchive, unplaceNote } from '../store/actions'
+import {
+  createGroup,
+  createNote,
+  createSection,
+  deleteNotes,
+  toggleArchive,
+  unplaceNote,
+} from '../store/actions'
 import { confirmAction, exec, openDialog, promptText, selectNote, toast, useApp } from '../store/store'
 import { ManuscriptPane } from './ManuscriptPane'
 
@@ -26,7 +49,13 @@ async function performMove(from: { kind: Kind; id: string }, target: DropTarget)
   const type = from.kind === 'section' ? 'section.move' : from.kind === 'group' ? 'group.move' : 'note.move'
   const r = await exec({ type, id: from.id, target } as never, { quiet: true })
   if (r.ok) toast('Outlineの構造を更新しました')
-  else toast(r.code === 'invalid-move' || r.code === 'not-found' ? `この位置には移動できません: ${r.message}` : r.message, 'error')
+  else
+    toast(
+      r.code === 'invalid-move' || r.code === 'not-found'
+        ? `この位置には移動できません: ${r.message}`
+        : r.message,
+      'error',
+    )
 }
 
 function useDropRow(kind: Kind, id: string, container: boolean) {
@@ -84,15 +113,26 @@ function keyboardMove(e: KeyboardEvent, kind: Kind, id: string) {
     if (other) void performMove({ kind, id }, { kind: 'note', id: other, position: up ? 'before' : 'after' })
     return
   }
-  const parent: ParentRef | undefined = kind === 'section' ? findSection(s, id)?.parent : findGroup(s, id)?.parent
+  const parent: ParentRef | undefined =
+    kind === 'section' ? findSection(s, id)?.parent : findGroup(s, id)?.parent
   if (!parent) return
   const list = childrenOf(s, parent)
   const i = list.findIndex((c) => c.id === id)
   const other = list[i + (up ? -1 : 1)]
-  if (other) void performMove({ kind, id }, { kind: other.kind, id: other.id, position: up ? 'before' : 'after' })
+  if (other)
+    void performMove({ kind, id }, { kind: other.kind, id: other.id, position: up ? 'before' : 'after' })
 }
 
-function Row({ kind, id, className, children, onClick, onDoubleClick, onContextMenu, testId }: {
+function Row({
+  kind,
+  id,
+  className,
+  children,
+  onClick,
+  onDoubleClick,
+  onContextMenu,
+  testId,
+}: {
   kind: Kind
   id: string
   className: string
@@ -103,7 +143,9 @@ function Row({ kind, id, className, children, onClick, onDoubleClick, onContextM
   testId: string
 }) {
   const { zone, handlers } = useDropRow(kind, id, kind !== 'note')
-  const selected = useApp((s) => (kind === 'note' ? s.selectedNoteId === id : kind === 'group' ? s.selectedGroupId === id : false))
+  const selected = useApp((s) =>
+    kind === 'note' ? s.selectedNoteId === id : kind === 'group' ? s.selectedGroupId === id : false,
+  )
   return (
     <div
       {...handlers}
@@ -140,7 +182,11 @@ function CollapseToggle({ k }: { k: string }) {
       data-testid="collapse-toggle"
       onClick={(e) => {
         e.stopPropagation()
-        useApp.setState((s) => ({ outlineCollapsed: collapsed ? s.outlineCollapsed.filter((x) => x !== k) : [...s.outlineCollapsed, k] }))
+        useApp.setState((s) => ({
+          outlineCollapsed: collapsed
+            ? s.outlineCollapsed.filter((x) => x !== k)
+            : [...s.outlineCollapsed, k],
+        }))
       }}
     >
       {collapsed ? '▸' : '▾'}
@@ -154,7 +200,11 @@ function InlineNote({ noteId }: { noteId: string }) {
       <div className="row">
         <span className="helper">Outline内で直接編集 · Markdown（自動保存）</span>
         <span className="grow" />
-        <button className="btn small" data-testid="inline-close" onClick={() => useApp.setState({ inlineNoteId: null })}>
+        <button
+          className="btn small"
+          data-testid="inline-close"
+          onClick={() => useApp.setState({ inlineNoteId: null })}
+        >
           Close
         </button>
       </div>
@@ -193,7 +243,12 @@ function NoteRow({ noteId, index }: { noteId: string; index?: number }) {
         <span className="outline-icon">▤</span>
         <span className="outline-label">{note.title}</span>
         {index !== undefined && <span className="outline-meta">{index + 1}</span>}
-        <button className="btn tiny ghost" title="Outline内で編集" data-testid="edit-inline" onClick={(e) => (e.stopPropagation(), openInline())}>
+        <button
+          className="btn tiny ghost"
+          title="Outline内で編集"
+          data-testid="edit-inline"
+          onClick={(e) => (e.stopPropagation(), openInline())}
+        >
           ✎
         </button>
       </Row>
@@ -218,14 +273,27 @@ function GroupBlock({ g }: { g: GroupNode }) {
         label: '⌫ Delete group (notes become Unassigned)',
         danger: true,
         run: async () => {
-          if (await confirmAction('Paragraph Groupを削除', `「${g.title}」を削除します。中のメモは削除されず未配置になります。`, { okLabel: '削除', danger: true }))
+          if (
+            await confirmAction(
+              'Paragraph Groupを削除',
+              `「${g.title}」を削除します。中のメモは削除されず未配置になります。`,
+              { okLabel: '削除', danger: true },
+            )
+          )
             await exec({ type: 'group.delete', id: g.id })
         },
       },
     ])
   return (
     <div className="outline-group-block">
-      <Row kind="group" id={g.id} className="outline-group" testId="outline-group" onClick={() => useApp.setState({ selectedGroupId: g.id })} onContextMenu={menu}>
+      <Row
+        kind="group"
+        id={g.id}
+        className="outline-group"
+        testId="outline-group"
+        onClick={() => useApp.setState({ selectedGroupId: g.id })}
+        onContextMenu={menu}
+      >
         <CollapseToggle k={`g:${g.id}`} />
         <span className="outline-icon">¶</span>
         <span className="outline-label">{g.title}</span>
@@ -274,24 +342,48 @@ function SectionBlock({ s, depth, labels }: { s: SectionNode; depth: number; lab
         label: '⌫ Delete section (contents are kept)',
         danger: true,
         run: async () => {
-          if (await confirmAction('章節を削除', `「${labels.get(s.id)}」を削除します。子の章節やParagraph Group、メモは削除されず親へ移動します。`, { okLabel: '削除', danger: true }))
+          if (
+            await confirmAction(
+              '章節を削除',
+              `「${labels.get(s.id)}」を削除します。子の章節やParagraph Group、メモは削除されず親へ移動します。`,
+              { okLabel: '削除', danger: true },
+            )
+          )
             await exec({ type: 'section.delete', id: s.id })
         },
       },
     ])
   return (
     <div className={`outline-section-block depth-${depth}`} ref={ref} data-section-block={s.id}>
-      <Row kind="section" id={s.id} className={depth === 1 ? 'outline-section' : 'outline-subsection'} testId="outline-section" onClick={() => useApp.setState({ scope: s.id })} onContextMenu={menu}>
+      <Row
+        kind="section"
+        id={s.id}
+        className={depth === 1 ? 'outline-section' : 'outline-subsection'}
+        testId="outline-section"
+        onClick={() => useApp.setState({ scope: s.id })}
+        onContextMenu={menu}
+      >
         <CollapseToggle k={`s:${s.id}`} />
         <strong className="outline-label">{labels.get(s.id)}</strong>
         <span className="outline-meta">{groupCount} paragraphs</span>
-        <button className="btn tiny ghost" title="メニュー" data-testid="section-menu" onClick={(e) => menu(e)}>
+        <button
+          className="btn tiny ghost"
+          title="メニュー"
+          data-testid="section-menu"
+          onClick={(e) => menu(e)}
+        >
           ⋯
         </button>
       </Row>
       {!collapsed && (
         <div className="outline-section-content">
-          {s.children.map((c) => (c.kind === 'group' ? <GroupBlock key={c.id} g={c} /> : <SectionBlock key={c.id} s={c} depth={depth + 1} labels={labels} />))}
+          {s.children.map((c) =>
+            c.kind === 'group' ? (
+              <GroupBlock key={c.id} g={c} />
+            ) : (
+              <SectionBlock key={c.id} s={c} depth={depth + 1} labels={labels} />
+            ),
+          )}
         </div>
       )}
     </div>
@@ -325,7 +417,10 @@ function UnassignedBlock() {
       }}
     >
       <div className="outline-unassigned-title">
-        Unassigned <span className="outline-meta">{loose.length} notes · {groups.length} groups · 原稿に含まれません</span>
+        Unassigned{' '}
+        <span className="outline-meta">
+          {loose.length} notes · {groups.length} groups · 原稿に含まれません
+        </span>
       </div>
       {groups.map((g) => (
         <GroupBlock key={g.id} g={g} />
@@ -333,7 +428,9 @@ function UnassignedBlock() {
       {loose.map((n) => (
         <NoteRow key={n.id} noteId={n.id} />
       ))}
-      {loose.length === 0 && groups.length === 0 && <div className="helper empty-row">未配置のメモはありません</div>}
+      {loose.length === 0 && groups.length === 0 && (
+        <div className="helper empty-row">未配置のメモはありません</div>
+      )}
     </div>
   )
 }
@@ -342,15 +439,22 @@ export function OutlineView() {
   const snapshot = useApp((s) => s.snapshot)
   const split = useApp((s) => s.manuscriptSplit)
   const structure = snapshot?.state.structure
-  const labels = useMemo(() => (structure ? computeNumbering(structure).label : new Map<string, string>()), [structure])
+  const labels = useMemo(
+    () => (structure ? computeNumbering(structure).label : new Map<string, string>()),
+    [structure],
+  )
   if (!snapshot || !structure) return null
   const expandAll = () => useApp.setState({ outlineCollapsed: [] })
   const collapseAll = () =>
     useApp.setState({
-      outlineCollapsed: [...[...labels.keys()].map((id) => `s:${id}`), ...allGroups(structure).map((g) => `g:${g.group.id}`)],
+      outlineCollapsed: [
+        ...[...labels.keys()].map((id) => `s:${id}`),
+        ...allGroups(structure).map((g) => `g:${g.group.id}`),
+      ],
     })
   const scope = useApp.getState().scope
-  const sectionForNewGroup = scope !== 'all' && scope !== 'unassigned' ? scope : (structure.root.children[0]?.id ?? null)
+  const sectionForNewGroup =
+    scope !== 'all' && scope !== 'unassigned' ? scope : (structure.root.children[0]?.id ?? null)
   return (
     <div className={`outline-workspace ${split ? 'split' : ''}`} data-testid="outline-view">
       <section className="outline-primary" data-testid="outline-primary">
@@ -364,18 +468,32 @@ export function OutlineView() {
           <button className="btn" data-testid="add-section" onClick={() => void createSection(null)}>
             ＋ Section
           </button>
-          <button className="btn" data-testid="add-paragraph" onClick={() => void createGroup({ sectionId: sectionForNewGroup })}>
+          <button
+            className="btn"
+            data-testid="add-paragraph"
+            onClick={() => void createGroup({ sectionId: sectionForNewGroup })}
+          >
             ＋ Paragraph
           </button>
           <span className="grow" />
-          <button className={`btn ${split ? 'active' : ''}`} data-testid="open-manuscript" onClick={() => useApp.setState({ manuscriptSplit: !split })}>
+          <button
+            className={`btn ${split ? 'active' : ''}`}
+            data-testid="open-manuscript"
+            onClick={() => useApp.setState({ manuscriptSplit: !split })}
+          >
             {split ? '✕ Close preview' : '◧ Open Manuscript'}
           </button>
-          <button className="btn" data-testid="manuscript-fullscreen-button" onClick={() => openDialog({ kind: 'manuscript-fullscreen' })}>
+          <button
+            className="btn"
+            data-testid="manuscript-fullscreen-button"
+            onClick={() => openDialog({ kind: 'manuscript-fullscreen' })}
+          >
             ⤢ Fullscreen
           </button>
         </div>
-        <p className="subheading">ドラッグで章節・Paragraph・メモを並び替え（Alt+↑↓でも移動）。メモをダブルクリックでOutline内編集。</p>
+        <p className="subheading">
+          ドラッグで章節・Paragraph・メモを並び替え（Alt+↑↓でも移動）。メモをダブルクリックでOutline内編集。
+        </p>
         <div role="tree" aria-label="Outline" className="outline-tree">
           {structure.root.children.map((s) => (
             <SectionBlock key={s.id} s={s} depth={1} labels={labels} />

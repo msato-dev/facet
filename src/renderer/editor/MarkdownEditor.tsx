@@ -1,7 +1,16 @@
 // CodeMirror 6 Markdown editor bound to one note: autosave, [[ completion, link navigation, conflicts.
 import { useEffect, useRef, useState } from 'react'
 import { Annotation, EditorState } from '@codemirror/state'
-import { Decoration, EditorView, MatchDecorator, ViewPlugin, keymap, placeholder, type DecorationSet, type ViewUpdate } from '@codemirror/view'
+import {
+  Decoration,
+  EditorView,
+  MatchDecorator,
+  ViewPlugin,
+  keymap,
+  placeholder,
+  type DecorationSet,
+  type ViewUpdate,
+} from '@codemirror/view'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { markdown } from '@codemirror/lang-markdown'
 import { autocompletion, type CompletionContext, type CompletionResult } from '@codemirror/autocomplete'
@@ -31,15 +40,40 @@ const wikiHighlight = ViewPlugin.fromClass(
 
 const editorTheme = EditorView.theme(
   {
-    '&': { backgroundColor: 'var(--input-bg)', color: 'var(--ink)', fontSize: '12.5px', border: '1px solid var(--line-strong)', borderRadius: '5px' },
+    '&': {
+      backgroundColor: 'var(--input-bg)',
+      color: 'var(--ink)',
+      fontSize: '12.5px',
+      border: '1px solid var(--line-strong)',
+      borderRadius: '5px',
+    },
     '&.cm-focused': { outline: '2px solid var(--accent)', outlineOffset: '1px' },
-    '.cm-content': { fontFamily: 'var(--font)', lineHeight: '1.6', padding: '8px 2px', caretColor: 'var(--accent)' },
+    '.cm-content': {
+      fontFamily: 'var(--font)',
+      lineHeight: '1.6',
+      padding: '8px 2px',
+      caretColor: 'var(--accent)',
+    },
     '.cm-scroller': { fontFamily: 'var(--font)' },
     '.cm-cursor': { borderLeftColor: 'var(--accent)' },
-    '.cm-selectionBackground, &.cm-focused .cm-selectionBackground': { backgroundColor: '#4a3b66 !important' },
-    '.cm-wikilink': { color: 'var(--link)', textDecoration: 'underline', textDecorationColor: '#6b5a8c', cursor: 'pointer' },
-    '.cm-tooltip': { backgroundColor: 'var(--panel-hi)', border: '1px solid var(--line-strong)', color: 'var(--ink)' },
-    '.cm-tooltip-autocomplete ul li[aria-selected]': { backgroundColor: 'var(--accent-bg)', color: 'var(--ink)' },
+    '.cm-selectionBackground, &.cm-focused .cm-selectionBackground': {
+      backgroundColor: '#4a3b66 !important',
+    },
+    '.cm-wikilink': {
+      color: 'var(--link)',
+      textDecoration: 'underline',
+      textDecorationColor: '#6b5a8c',
+      cursor: 'pointer',
+    },
+    '.cm-tooltip': {
+      backgroundColor: 'var(--panel-hi)',
+      border: '1px solid var(--line-strong)',
+      color: 'var(--ink)',
+    },
+    '.cm-tooltip-autocomplete ul li[aria-selected]': {
+      backgroundColor: 'var(--accent-bg)',
+      color: 'var(--ink)',
+    },
     '.cm-placeholder': { color: 'var(--muted)' },
   },
   { dark: true },
@@ -74,7 +108,8 @@ function linkClick(selfId: string) {
         const start = line.from + m.index
         if (pos >= start && pos <= start + m[0].length) {
           const snap = useApp.getState().snapshot
-          const target = snap && Object.values(snap.state.notes).find((n) => titleKey(n.title) === titleKey(m[1]))
+          const target =
+            snap && Object.values(snap.state.notes).find((n) => titleKey(n.title) === titleKey(m[1]))
           if (target && target.id !== selfId) selectNote(target.id)
           else if (!target) toast(`リンク先「${m[1]}」が見つかりません`, 'error')
           e.preventDefault()
@@ -97,7 +132,12 @@ export function MarkdownEditor({ noteId, autoFocus, minHeight = 200, testId }: P
   const host = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
   const note = useApp((s) => s.snapshot?.state.notes[noteId])
-  const sync = useRef({ baseRev: note?.rev ?? 0, dirty: false, lastSent: null as string | null, timer: 0 as unknown as ReturnType<typeof setTimeout> })
+  const sync = useRef({
+    baseRev: note?.rev ?? 0,
+    dirty: false,
+    lastSent: null as string | null,
+    timer: 0 as unknown as ReturnType<typeof setTimeout>,
+  })
   const [conflict, setConflict] = useState(false)
   const [status, setStatus] = useState<'saved' | 'pending' | 'saving'>('saved')
 
@@ -111,7 +151,10 @@ export function MarkdownEditor({ noteId, autoFocus, minHeight = 200, testId }: P
     if (!current) return
     s.lastSent = body
     setStatus('saving')
-    const r = await exec({ type: 'note.updateBody', id: noteId, body, baseRev: force ? current.rev : s.baseRev }, { quiet: true })
+    const r = await exec(
+      { type: 'note.updateBody', id: noteId, body, baseRev: force ? current.rev : s.baseRev },
+      { quiet: true },
+    )
     if (!r.ok) {
       setStatus('pending')
       if (r.code === 'conflict') setConflict(true)
@@ -135,6 +178,8 @@ export function MarkdownEditor({ noteId, autoFocus, minHeight = 200, testId }: P
       state: EditorState.create({
         doc: initial?.body ?? '',
         extensions: [
+          // Completion first so its Enter/arrow bindings take precedence over the default keymap.
+          autocompletion({ override: [wikiCompletion(noteId)], icons: false }),
           history(),
           keymap.of([
             { key: 'Mod-s', run: () => (void saveRef.current(), true) },
@@ -144,11 +189,13 @@ export function MarkdownEditor({ noteId, autoFocus, minHeight = 200, testId }: P
           markdown(),
           EditorView.lineWrapping,
           placeholder('Markdown本文… [[ でWikiLink、引用は [@Key]'),
-          autocompletion({ override: [wikiCompletion(noteId)], icons: false }),
           wikiHighlight,
           linkClick(noteId),
           editorTheme,
-          EditorView.contentAttributes.of({ 'aria-label': 'Note body', 'data-testid': testId ?? 'note-body' }),
+          EditorView.contentAttributes.of({
+            'aria-label': 'Note body',
+            'data-testid': testId ?? 'note-body',
+          }),
           EditorView.updateListener.of((u) => {
             if (u.focusChanged && u.view.hasFocus) noteFocused(noteId, u.view)
             if (u.selectionSet) rememberCursor(noteId, u.state.selection.main.head)
@@ -239,5 +286,9 @@ export function MarkdownEditor({ noteId, autoFocus, minHeight = 200, testId }: P
 
 function replaceDoc(view: EditorView, text: string) {
   const head = Math.min(view.state.selection.main.head, text.length)
-  view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text }, selection: { anchor: head }, annotations: remoteAnnotation.of(true) })
+  view.dispatch({
+    changes: { from: 0, to: view.state.doc.length, insert: text },
+    selection: { anchor: head },
+    annotations: remoteAnnotation.of(true),
+  })
 }

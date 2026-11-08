@@ -12,7 +12,8 @@ function isInside(root: string, candidate: string): boolean {
 export function validateRelative(rel: string): string {
   if (!rel || rel.includes('\0')) throw new PathGuardError('Invalid path')
   const norm = rel.replace(/\\/g, '/')
-  if (path.isAbsolute(norm) || /^[a-zA-Z]:/.test(norm) || norm.startsWith('/')) throw new PathGuardError('Absolute paths are not allowed')
+  if (path.isAbsolute(norm) || /^[a-zA-Z]:/.test(norm) || norm.startsWith('/'))
+    throw new PathGuardError('Absolute paths are not allowed')
   const parts = norm.split('/')
   if (parts.some((p) => p === '..' || p === '')) throw new PathGuardError('Path traversal is not allowed')
   return parts.join(path.sep)

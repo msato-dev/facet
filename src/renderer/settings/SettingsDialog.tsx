@@ -7,7 +7,9 @@ import { confirmAction, flushAllEditors, promptText, refreshWorkspaces, toast, u
 export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const workspaces = useApp((s) => s.workspaces)
   const version = useApp((s) => s.version)
-  const [paths, setPaths] = useState<Record<string, string>>(() => Object.fromEntries(workspaces.map((w) => [w.id, w.vaultPath])))
+  const [paths, setPaths] = useState<Record<string, string>>(() =>
+    Object.fromEntries(workspaces.map((w) => [w.id, w.vaultPath])),
+  )
   const [results, setResults] = useState<Record<string, VaultValidation>>({})
   const [busy, setBusy] = useState(false)
 
@@ -29,7 +31,11 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
     setBusy(true)
     try {
       await flushAllEditors()
-      const changed = Object.fromEntries(Object.entries(paths).filter(([id, p]) => workspaces.find((w) => w.id === id)?.vaultPath !== p.trim()))
+      const changed = Object.fromEntries(
+        Object.entries(paths).filter(
+          ([id, p]) => workspaces.find((w) => w.id === id)?.vaultPath !== p.trim(),
+        ),
+      )
       if (!Object.keys(changed).length) return onClose()
       const r = await window.facet.saveVaultLocations(changed)
       setResults(r.results)
@@ -47,7 +53,11 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const add = async () => {
     const p = await window.facet.browseFolder()
     if (!p) return
-    const name = await promptText('Workspace名', { label: '新規Vaultの場合の名前（既存Vaultは保存済みの名前を使用）', initial: p.split(/[\\/]/).filter(Boolean).at(-1) ?? 'Workspace', okLabel: '追加' })
+    const name = await promptText('Workspace名', {
+      label: '新規Vaultの場合の名前（既存Vaultは保存済みの名前を使用）',
+      initial: p.split(/[\\/]/).filter(Boolean).at(-1) ?? 'Workspace',
+      okLabel: '追加',
+    })
     if (name === null) return
     const r = await window.facet.addWorkspace(p, name)
     if (!r.ok) return toast(r.message, 'error')
@@ -57,7 +67,14 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
     if (!useApp.getState().activeId) await refreshWorkspaces(r.workspaces)
   }
   const remove = async (id: string, name: string) => {
-    if (!(await confirmAction('登録解除', `「${name}」を一覧から外します。Vaultのファイルは移動・削除されません。`, { okLabel: '登録解除' }))) return
+    if (
+      !(await confirmAction(
+        '登録解除',
+        `「${name}」を一覧から外します。Vaultのファイルは移動・削除されません。`,
+        { okLabel: '登録解除' },
+      ))
+    )
+      return
     const list = await window.facet.removeWorkspace(id)
     setPaths((s) => {
       const n = { ...s }
@@ -70,9 +87,15 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   return (
     <Modal title="⚙ Settings" onClose={onClose} testId="settings-dialog">
       <div className="settings-heading">Vault Locations</div>
-      <div className="helper">WorkspaceごとのVault参照先ディレクトリ。変更しても元のVaultは移動・上書き・削除されません。</div>
+      <div className="helper">
+        WorkspaceごとのVault参照先ディレクトリ。変更しても元のVaultは移動・上書き・削除されません。
+      </div>
       <div className="settings-workspaces">
-        {workspaces.length === 0 && <div className="empty">Workspaceが登録されていません。「Add workspace…」でフォルダーを選択してください。</div>}
+        {workspaces.length === 0 && (
+          <div className="empty">
+            Workspaceが登録されていません。「Add workspace…」でフォルダーを選択してください。
+          </div>
+        )}
         {workspaces.map((w) => {
           const v = results[w.id]
           return (
@@ -94,7 +117,11 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
                 <button className="btn" data-testid="vault-browse" onClick={() => void browse(w.id)}>
                   Browse…
                 </button>
-                <button className="btn" title="一覧から外す（ファイルは削除しません）" onClick={() => void remove(w.id, w.name)}>
+                <button
+                  className="btn"
+                  title="一覧から外す（ファイルは削除しません）"
+                  onClick={() => void remove(w.id, w.name)}
+                >
                   Remove
                 </button>
               </div>
@@ -113,14 +140,24 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
         <button className="btn" data-testid="add-workspace" onClick={() => void add()}>
           ＋ Add workspace…
         </button>
-        <span className="helper">空のフォルダーは新しいVaultとして初期化、既存のVaultはそのまま登録します。</span>
+        <span className="helper">
+          空のフォルダーは新しいVaultとして初期化、既存のVaultはそのまま登録します。
+        </span>
       </div>
-      <div className="settings-hint helper">設定はWindowsユーザープロファイル下に保存され、ポータブルEXEを移動しても維持されます。 FACET v{version}</div>
+      <div className="settings-hint helper">
+        設定はWindowsユーザープロファイル下に保存され、ポータブルEXEを移動しても維持されます。 FACET v
+        {version}
+      </div>
       <div className="modal-actions">
         <button className="btn" data-testid="settings-cancel" onClick={onClose}>
           Cancel
         </button>
-        <button className="btn primary" data-testid="settings-save" disabled={busy} onClick={() => void save()}>
+        <button
+          className="btn primary"
+          data-testid="settings-save"
+          disabled={busy}
+          onClick={() => void save()}
+        >
           Save settings
         </button>
       </div>

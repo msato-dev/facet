@@ -16,7 +16,8 @@ test('UI-04 Canvas Tools only at the top of the canvas centre pane', async () =>
   const { app, page } = await launch(env.userData)
   const tools = page.getByTestId('canvas-tools')
   await expect(tools).toBeVisible()
-  for (const name of ['new', 'copy', 'paste', 'group', 'select', 'delete', 'archive', 'citation']) await expect(page.getByTestId(`tool-${name}`)).toBeVisible()
+  for (const name of ['new', 'copy', 'paste', 'group', 'select', 'delete', 'archive', 'citation'])
+    await expect(page.getByTestId(`tool-${name}`)).toBeVisible()
   const tb = (await tools.boundingBox())!
   const center = (await page.getByTestId('center-pane').boundingBox())!
   const left = (await page.getByTestId('left-pane').boundingBox())!
@@ -67,7 +68,9 @@ test('UI-05 pan, cursor-anchored zoom, fit all, 100%, fit group', async () => {
   // Fit all: every node visible inside the stage.
   await page.getByTestId('fit-all').click()
   await page.waitForTimeout(350)
-  for (const el of await page.locator('[data-testid="canvas-group"], [data-testid="canvas-unassigned"]').all()) {
+  for (const el of await page
+    .locator('[data-testid="canvas-group"], [data-testid="canvas-unassigned"]')
+    .all()) {
     const b = (await el.boundingBox())!
     expect(b.x).toBeGreaterThanOrEqual(box.x - 1)
     expect(b.x + b.width).toBeLessThanOrEqual(box.x + box.width + 1)
@@ -136,9 +139,15 @@ test('Canvas: drag a note chip into another group changes membership', async () 
   await page.getByTestId('fit-all').click()
   await page.waitForTimeout(300)
   const chip = page.locator(`[data-testid="canvas-note"][data-note-id="${env.zao.noteIds.n7}"]`)
-  const target = page.locator(`[data-testid="canvas-group"][data-group-id="${env.zao.groupIds.p5}"] .para-footer`)
+  const target = page.locator(
+    `[data-testid="canvas-group"][data-group-id="${env.zao.groupIds.p5}"] .para-footer`,
+  )
   await chip.dragTo(target)
-  await expect(page.locator(`[data-testid="canvas-group"][data-group-id="${env.zao.groupIds.p5}"] [data-note-id="${env.zao.noteIds.n7}"]`)).toBeVisible()
+  await expect(
+    page.locator(
+      `[data-testid="canvas-group"][data-group-id="${env.zao.groupIds.p5}"] [data-note-id="${env.zao.noteIds.n7}"]`,
+    ),
+  ).toBeVisible()
   const s = JSON.parse(await readFile(path.join(env.zao.dir, 'structure.json'), 'utf8'))
   expect(JSON.stringify(s).split(env.zao.noteIds.n7).length - 1).toBe(1)
   await app.close()

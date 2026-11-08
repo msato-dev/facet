@@ -47,7 +47,12 @@ export function allSections(s: Structure): SectionNode[] {
 
 export function findSection(s: Structure, id: SectionId): SectionLocation | null {
   let found: SectionLocation | null = null
-  const rec = (nodes: Array<SectionNode | GroupNode>, parent: ParentRef, depth: number, path: SectionNode[]) => {
+  const rec = (
+    nodes: Array<SectionNode | GroupNode>,
+    parent: ParentRef,
+    depth: number,
+    path: SectionNode[],
+  ) => {
     nodes.forEach((n, index) => {
       if (found || n.kind !== 'section') return
       const p = [...path, n]
@@ -69,7 +74,9 @@ export function allGroups(s: Structure): GroupLocation[] {
     })
   }
   rec(s.root.children, { type: 'root' }, [])
-  s.unplacedGroups.forEach((g, index) => out.push({ group: g, parent: { type: 'unplaced' }, index, path: [] }))
+  s.unplacedGroups.forEach((g, index) =>
+    out.push({ group: g, parent: { type: 'unplaced' }, index, path: [] }),
+  )
   return out
 }
 
@@ -101,7 +108,8 @@ export function groupedNoteIds(s: Structure): Set<NoteId> {
 /** Note ids that will appear in the manuscript (inside groups that live in sections). */
 export function manuscriptNoteIds(s: Structure): Set<NoteId> {
   const ids = new Set<NoteId>()
-  for (const gl of allGroups(s)) if (gl.parent.type !== 'unplaced') for (const id of gl.group.noteIds) ids.add(id)
+  for (const gl of allGroups(s))
+    if (gl.parent.type !== 'unplaced') for (const id of gl.group.noteIds) ids.add(id)
   return ids
 }
 
@@ -138,7 +146,11 @@ function mapChildren(nodes: Child[], fn: (n: Child) => Child): Child[] {
 }
 
 /** Replace the children list of a parent. Returns a new Structure. */
-export function updateChildren(s: Structure, parent: ParentRef, fn: (children: Child[]) => Child[]): Structure {
+export function updateChildren(
+  s: Structure,
+  parent: ParentRef,
+  fn: (children: Child[]) => Child[],
+): Structure {
   if (parent.type === 'root') {
     const next = fn(s.root.children) as SectionNode[]
     return { ...s, root: { children: next } }
@@ -165,10 +177,16 @@ export function childrenOf(s: Structure, parent: ParentRef): Child[] {
 export function updateGroup(s: Structure, groupId: GroupId, fn: (g: GroupNode) => GroupNode): Structure {
   const loc = findGroup(s, groupId)
   if (!loc) return s
-  return updateChildren(s, loc.parent, (children) => children.map((c) => (c.kind === 'group' && c.id === groupId ? fn(c) : c)))
+  return updateChildren(s, loc.parent, (children) =>
+    children.map((c) => (c.kind === 'group' && c.id === groupId ? fn(c) : c)),
+  )
 }
 
-export function updateSection(s: Structure, sectionId: SectionId, fn: (sec: SectionNode) => SectionNode): Structure {
+export function updateSection(
+  s: Structure,
+  sectionId: SectionId,
+  fn: (sec: SectionNode) => SectionNode,
+): Structure {
   const loc = findSection(s, sectionId)
   if (!loc) return s
   return updateChildren(s, loc.parent, (children) =>

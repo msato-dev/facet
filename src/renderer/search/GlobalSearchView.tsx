@@ -40,10 +40,24 @@ export function GlobalSearchView() {
   return (
     <div className="listview" data-testid="global-search-view">
       <h1 className="heading">Search all workspaces</h1>
-      <p className="subheading">登録済みのすべてのWorkspaceのメモを横断検索します。別Workspaceへの再利用は独立したコピーとして作成されます。</p>
+      <p className="subheading">
+        登録済みのすべてのWorkspaceのメモを横断検索します。別Workspaceへの再利用は独立したコピーとして作成されます。
+      </p>
       <div className="searchline">
-        <input className="input grow" autoFocus data-testid="global-search-input" placeholder="Search all notes…（日本語・英語）" value={q} onChange={(e) => setQ(e.target.value)} />
-        <select className="select" aria-label="Workspace filter" value={ws} onChange={(e) => setWs(e.target.value)}>
+        <input
+          className="input grow"
+          autoFocus
+          data-testid="global-search-input"
+          placeholder="Search all notes…（日本語・英語）"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+        <select
+          className="select"
+          aria-label="Workspace filter"
+          value={ws}
+          onChange={(e) => setWs(e.target.value)}
+        >
           <option value="all">All Workspaces</option>
           {workspaces.map((w) => (
             <option key={w.id} value={w.id}>
