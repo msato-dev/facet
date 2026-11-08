@@ -7,6 +7,7 @@
 - 対象: Windows 11 x64。インストール不要のポータブル EXE（オフラインで動作）
 - 仕様: [docs/SPEC.md](docs/SPEC.md)（唯一の現行仕様）
 - UI 参照: [docs/mock/FACET_interactive_mock.html](docs/mock/FACET_interactive_mock.html)
+- バージョン: 0.1.0（プロトタイプ。方針は [docs/VERSIONING.md](docs/VERSIONING.md)、変更履歴は [CHANGELOG.md](CHANGELOG.md)）
 - 実装計画: [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md)、設計判断: [docs/DECISIONS.md](docs/DECISIONS.md)、テスト対応表: [docs/TEST_MATRIX.md](docs/TEST_MATRIX.md)
 
 ## 使い方の概要
