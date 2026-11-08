@@ -251,6 +251,38 @@ describe('workspace manager & settings (DAT-06, UI-14)', () => {
     await again.dispose()
   })
 
+  it('stores the canonical vault path when a location is given through an alias (8.3 name, link)', async () => {
+    const { realpath } = await import('node:fs/promises')
+    const manager = new WorkspaceManager(SettingsStore.forDir(path.join(tmp, 'ud')), () => undefined, {
+      watch: false,
+    })
+    await manager.init()
+    const dir = path.join(tmp, 'Vault')
+    await mkdir(dir)
+    const a = (await manager.addWorkspace(dir, 'Zao')).workspace!
+    expect(a.vaultPath).toBe(await realpath(dir))
+
+    // Move the vault, then point the workspace at it through an alias of the new folder.
+    const moved = path.join(tmp, 'Moved')
+    await mkdir(moved)
+    for (const f of await readdir(dir, { withFileTypes: true })) {
+      if (f.isFile()) await writeFile(path.join(moved, f.name), await readFile(path.join(dir, f.name)))
+    }
+    await mkdir(path.join(moved, 'notes'))
+    const alias = path.join(tmp, 'alias')
+    await symlink(moved, alias, process.platform === 'win32' ? 'junction' : 'dir')
+    const r = await manager.saveLocations({ [a.id]: alias })
+    expect(r.ok).toBe(true)
+    expect(r.results[a.id].path).toBe(await realpath(moved))
+    expect(manager.summaries()[0].vaultPath).toBe(await realpath(moved))
+    expect(manager.session(a.id)!.vaultPath).toBe(await realpath(moved))
+
+    // Giving the same vault again through the alias is not a change.
+    const again = await manager.saveLocations({ [a.id]: alias })
+    expect(again.ok).toBe(true)
+    await manager.dispose()
+  })
+
   it('searches across workspaces (Japanese and English) and copies notes independently', async () => {
     const manager = new WorkspaceManager(SettingsStore.forDir(path.join(tmp, 'ud')), () => undefined, {
       watch: false,

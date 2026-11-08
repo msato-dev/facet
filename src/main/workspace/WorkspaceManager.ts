@@ -125,7 +125,7 @@ export class WorkspaceManager {
       if (next === undefined || next.trim() === w.vaultPath) continue
       const v = await validateVaultForWorkspace(w.id, next.trim())
       results[w.id] = v
-      if (v.ok) changes.push([w.id, v.path])
+      if (v.ok && v.path !== w.vaultPath) changes.push([w.id, v.path])
     }
     if (Object.values(results).some((r) => !r.ok)) return { ok: false, results, workspaces: this.summaries() }
     for (const [id, p] of changes) {

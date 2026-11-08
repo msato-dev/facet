@@ -2,6 +2,7 @@
 import { access, constants, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import type { VaultValidation } from '../../shared/ipc/contract'
+import { realRootOf } from '../vault/pathGuard'
 import { VaultError, VaultRepository } from '../vault/VaultRepository'
 
 function looksAbsolute(p: string): boolean {
@@ -35,14 +36,17 @@ export async function validateVaultForWorkspace(workspaceId: string, p: string):
   const dirError = await checkDirectory(p)
   if (dirError) return { ok: false, path: p, message: dirError }
   try {
-    const project = await VaultRepository.readProject(p)
+    // Store the canonical path (symlinks resolved, Windows 8.3 short names expanded), the same form
+    // that addWorkspace stores via VaultRepository.open, so saved paths compare and display consistently.
+    const real = await realRootOf(p)
+    const project = await VaultRepository.readProject(real)
     if (project.workspaceId !== workspaceId)
       return {
         ok: false,
         path: p,
         message: `別のWorkspace「${project.name}」のVaultです。このWorkspaceのVaultを指定してください`,
       }
-    return { ok: true, path: path.resolve(p), message: `有効なVaultです（${project.name}）` }
+    return { ok: true, path: real, message: `有効なVaultです（${project.name}）` }
   } catch (e) {
     return { ok: false, path: p, message: e instanceof VaultError ? e.message : 'Vault構造を確認できません' }
   }
