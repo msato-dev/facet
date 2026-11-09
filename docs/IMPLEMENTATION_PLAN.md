@@ -107,6 +107,7 @@ shared/ (純TS、Node/DOM非依存) ← Main と Renderer の両方が import   
 - **メモ**: `note.create` / `note.rename` / `note.updateBody` / `note.setTags` / `note.archive` / `note.unarchive` / `note.trash` / `note.restore` / `note.duplicate` / `note.copyToWorkspace`
   - `note.rename` は WikiLink の連鎖更新を含み、複数ファイルを更新するトランザクションになる
   - `note.copyToWorkspace` は新しい ID で独立したコピーを作る（§5）
+  - `note.create` の `body` は新規メモダイアログ（タイトル＋本文）から使う（ADR-037）
 - **構造**: `section.create` / `section.rename` / `section.move` / `section.delete`、`group.create` / `group.rename` / `group.move` / `group.delete`、`note.place` / `note.unplace` / `note.move`
 - **Canvas**: `canvas.setGroupPos` / `canvas.setNotePos` / `canvas.setGroupExpanded` / `canvas.setViewport`
   - Canvas の座標は構造に影響しない（§3.2）
@@ -359,3 +360,22 @@ facet/
 - Phase 1〜5 の機能を develop ブランチに実装済み。Phase 6 の自動テスト（単体・統合 45、E2E 25）と性能計測を実施済み。
 - 計画からの変更点は `docs/DECISIONS.md` の ADR-021〜027 に記録（D&D は HTML5 ネイティブ、BibTeX パーサーは純 JS ビルドなど）。
 - 未完了: Windows 11 実機での WIN-01/WIN-02 の手動確認（CI の windows-latest ジョブで portable EXE をビルドし、パッケージ版で E2E を実行する構成は用意済み）、コード署名。
+
+---
+
+## 改修計画 0.2（2026-11-09）メモ作成・表示・編集
+
+SPEC v3.1 の §3.2、§5、§8.1、§8.3 と、受け入れテスト UI-07、UI-12、UI-15、UI-16、DAT-03 に対応する。データモデル（`Note.title`/`Note.body`）、Vault 形式、IPC、Main 側のコマンドは変更しない。判断は ADR-033〜037。各 Phase の終わりに typecheck、lint、単体・統合テストと対象 E2E を通し、報告して承認を得てから次へ進む。
+
+| Phase | 内容 | 主な変更ファイル | 対象テスト | 依存 |
+|---|---|---|---|---|
+| 0 | 仕様・設計文書の更新 | `docs/*`、`CLAUDE.md` | — | — |
+| 1 | Manuscript で本文中の見出しを除去（ADR-033） | `src/shared/markdown/manuscript.ts` | DAT-03（`tests/unit/markdown.test.ts`） | なし |
+| 2 | 新規メモダイアログ（タイトル＋本文）（ADR-037） | `editor/markdownExtensions.ts`・`editor/MarkdownInput.tsx`（新規）、`common/Dialogs.tsx`、`store/actions.ts`、`store/store.ts` | UI-15、DAT-01 | なし |
+| 3 | 共通の展開パネルとエディター間の受け渡し（ADR-034、035） | `editor/NoteBodyPanel.tsx`（新規）、`editor/registry.ts`、`editor/MarkdownEditor.tsx` | UI-10、DAT-05、UI-16（同期） | なし |
+| 4 | Cards の展開編集 | `cards/CardsView.tsx`、`store/store.ts`、`theme/app.css` | UI-12、UI-16 | 3 |
+| 5 | Canvas の展開編集とレイアウト追従（ADR-036） | `canvas/CanvasView.tsx`、`canvas/layout.ts`、`store/store.ts` | UI-07、UI-16、`tests/unit/layout.test.ts` | 3 |
+| 6 | 統合確認とリリース準備（CI、CHANGELOG 0.2.0、Windows 実機での IME・ズーム中の入力） | — | 全件 | 1〜5 |
+
+- Outline の既存のインライン編集（タイトル＋本文）は作り直さない。
+- 展開パネルは本文だけを編集する（タイトルの変更は右ペイン）。テスト ID は `card-body` / `canvas-body` とし、`data-note-id` を付けない。
