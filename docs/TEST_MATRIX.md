@@ -15,11 +15,11 @@ SPEC.md §11 の各 ID と、それを検証する自動テストの対応。E2E
 | UI-09 | Outline D&D | `tests/e2e/outline.spec.ts` › UI-09 / DAT-04、`tests/unit/commands.test.ts`（property-based） | メモ・Paragraph・章節の移動、親変更、循環拒否、多重配置なし |
 | UI-10 | Inline Note編集 | `tests/e2e/outline.spec.ts` › UI-10 | Outline内編集 ⇄ 右Note Editor ⇄ Manuscript ⇄ .md ファイル |
 | UI-11 | Manuscript | `tests/e2e/outline.spec.ts` › UI-11 / DAT-03 | 中央左右分割、閉じる、全画面、.md エクスポート |
-| UI-12 | Cards | `tests/e2e/cards.spec.ts` › UI-12、› Search all workspaces | 正方形、検索、タグ/Outline別、章（子節含む）/Unassigned絞り込み、横断検索。（予定）クリックで展開・編集、複数表示時は1か所だけ展開、展開中も検索・並べ替え・グループ化 |
+| UI-12 | Cards | `tests/e2e/cards.spec.ts` › UI-12、› Search all workspaces | 正方形、検索、タグ/Outline別、章（子節含む）/Unassigned絞り込み、横断検索。クリックで直下に全幅で展開・編集（`cards.spec.ts` › UI-12 / UI-16）、複数表示時は1か所だけ展開、展開中も検索・並べ替え・グループ化、編集で検索に合わなくなっても折りたたむまで表示 |
 | UI-13 | Reference | `tests/e2e/reference-settings.spec.ts` › UI-13、› BibTeX errors | 検索、カーソル位置への `[@key]` 挿入、解析エラー・重複キー、外部更新の再読込 |
 | UI-14 | Settings | `tests/e2e/reference-settings.spec.ts` › UI-14 / DAT-06、`tests/integration/vault.test.ts` | Browse（E2EではOSダイアログをスタブ）、Save/Cancel、再起動後に復元 |
 | UI-15 | 新規メモ | `tests/e2e/cards.spec.ts` › UI-15、› DAT-01 | タイトルと本文を別欄で入力、`.md` は `# Title` ＋本文、重複タイトルで入力を保持、入力ありのキャンセルで確認 |
-| UI-16 | 展開編集の同期 | （予定）`tests/e2e/cards.spec.ts` › UI-16、`tests/e2e/canvas.spec.ts` › UI-16、`tests/e2e/sync.spec.ts` › UI-16（同じメモの2エディター間の受け渡しは実装済み） | Cards／Canvas の展開編集が右ペイン・Outline・`.md` と同期、同じメモの複数エディターで自己競合しない、競合バナー、Canvas のドラッグ・パン・ズームと競合しない、ツリー表示で重ならない |
+| UI-16 | 展開編集の同期 | `tests/e2e/cards.spec.ts` › UI-12 / UI-16、（予定）`tests/e2e/canvas.spec.ts` › UI-16、`tests/e2e/sync.spec.ts` › UI-16（同じメモの2エディター間の受け渡しは実装済み） | Cards／Canvas の展開編集が右ペイン・Outline・`.md` と同期、同じメモの複数エディターで自己競合しない、競合バナー、Canvas のドラッグ・パン・ズームと競合しない、ツリー表示で重ならない |
 | DAT-01 | メモ一意 | `tests/unit/commands.test.ts` › titles、`tests/e2e/cards.spec.ts` › DAT-01 | 同一Workspaceの重複（大文字小文字・NFC）を拒否、別Workspaceでは許可 |
 | DAT-02 | WikiLink | `tests/unit/markdown.test.ts` › WikiLinks、`tests/e2e/cards.spec.ts` › DAT-02 | 補完、移動、Backlinks、改名時の連鎖更新（コード・数式・エスケープは対象外）、リンク切れ |
 | DAT-03 | Paragraph | `tests/unit/markdown.test.ts` › manuscript、`tests/e2e/outline.spec.ts` › UI-11 / DAT-03 | 指定順で1段落化、H1/Groupタイトルなし、引用保持、複雑なメモは原文のまま出力して警告。本文中の H1〜H6 を除去（コード・数式・HTML は変えない）: `tests/unit/markdown.test.ts` › manuscript headings |

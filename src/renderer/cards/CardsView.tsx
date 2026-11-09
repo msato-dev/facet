@@ -1,5 +1,5 @@
 // Cards: square responsive grid, search, sort, grouping, Outline filter (SPEC §5, UI-12).
-import { useMemo } from 'react'
+import { Fragment, useMemo } from 'react'
 import { computeNumbering, sectionBreadcrumb } from '../../shared/domain/numbering'
 import {
   allSections,
@@ -10,6 +10,7 @@ import {
 import type { Note } from '../../shared/domain/types'
 import { matchesQuery } from '../../shared/search/tokenizer'
 import { openContextMenu } from '../common/ContextMenu'
+import { NoteBodyPanel } from '../editor/NoteBodyPanel'
 import { copyNote, deleteNotes, toggleArchive } from '../store/actions'
 import { openDialog, selectNote, useApp, type CardsOptions } from '../store/store'
 
@@ -26,18 +27,23 @@ export function NoteCard({
   workspace,
   onOpen,
   extra,
+  expanded,
 }: {
   note: Note | { id: string; title: string; body: string; tags: string[]; archived?: boolean }
   workspace?: string
-  onOpen: () => void
+  /** `detail` is the click count (2 for the second click of a double click). */
+  onOpen: (e?: { detail: number }) => void
   extra?: React.ReactNode
+  /** Set when the card can expand: whether its full text is open below it. */
+  expanded?: boolean
 }) {
   const selected = useApp((s) => s.selectedNoteId === note.id)
   return (
     <div
-      className={`memocard ${selected ? 'selected' : ''} ${note.archived ? 'archived' : ''}`}
+      className={`memocard ${selected ? 'selected' : ''} ${note.archived ? 'archived' : ''} ${expanded ? 'expanded' : ''}`}
       role="button"
       tabIndex={0}
+      aria-expanded={expanded}
       data-testid="memo-card"
       data-note-id={note.id}
       onClick={onOpen}
@@ -80,6 +86,9 @@ export function CardsView() {
   const { structure, notes } = snapshot.state
   const numbering = useMemo(() => computeNumbering(structure), [structure])
 
+  const expanded = useApp((s) => s.cardsExpanded)
+  const expandedNoteId = expanded?.split('\u0000')[1] ?? null
+
   const groups = useMemo(() => {
     const inManuscript = manuscriptNoteIds(structure)
     const subtree = scope !== 'all' && scope !== 'unassigned' ? sectionSubtreeIds(structure, scope) : null
@@ -91,6 +100,8 @@ export function CardsView() {
         const parent = loc?.groupLocation.parent
         if (!parent || parent.type !== 'section' || !subtree.has(parent.id)) return false
       }
+      // A note open for editing stays until it is collapsed, even if its edited text stops matching.
+      if (n.id === expandedNoteId) return true
       return matchesQuery(`${n.title}\n${n.body}\n${n.tags.join(' ')}`, opts.query)
     })
     list.sort((a, b) =>
@@ -113,7 +124,22 @@ export function CardsView() {
       } else push('All Notes', n)
     }
     return [...out.entries()]
-  }, [notes, structure, scope, opts, numbering])
+  }, [notes, structure, scope, opts, numbering, expandedNoteId])
+
+  // After regrouping, the expanded note stays open at its first place in the new grouping.
+  const openKey = useMemo(() => {
+    if (!expanded || !expandedNoteId) return null
+    const keys = groups.flatMap(([k, ns]) =>
+      ns.filter((n) => n.id === expandedNoteId).map(() => `${k}\u0000${expandedNoteId}`),
+    )
+    return keys.includes(expanded) ? expanded : (keys[0] ?? null)
+  }, [groups, expanded, expandedNoteId])
+
+  const toggle = (key: string, noteId: string, e?: { detail: number }) => {
+    if (e && e.detail > 1) return // the second click of a double click
+    selectNote(noteId)
+    useApp.setState({ cardsExpanded: openKey === key ? null : key })
+  }
 
   const total = new Set(groups.flatMap(([, ns]) => ns.map((n) => n.id))).size
   return (
@@ -188,9 +214,23 @@ export function CardsView() {
             {k} <span className="muted">{ns.length}</span>
           </h3>
           <div className="cardgrid">
-            {ns.map((n) => (
-              <NoteCard key={`${k}:${n.id}`} note={n} onOpen={() => selectNote(n.id)} />
-            ))}
+            {ns.map((n) => {
+              const key = `${k}\u0000${n.id}`
+              const open = openKey === key
+              return (
+                <Fragment key={key}>
+                  <NoteCard note={n} expanded={open} onOpen={(e) => toggle(key, n.id, e)} />
+                  {open && (
+                    <NoteBodyPanel
+                      noteId={n.id}
+                      testId="card-body"
+                      className="card-expand"
+                      onClose={() => useApp.setState({ cardsExpanded: null })}
+                    />
+                  )}
+                </Fragment>
+              )
+            })}
           </div>
         </section>
       ))}

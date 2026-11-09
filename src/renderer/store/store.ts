@@ -80,6 +80,8 @@ interface AppState {
   manuscriptSplit: boolean
   outlineCollapsed: string[]
   inlineNoteId: NoteId | null
+  /** Card expanded for full-text editing: `${groupKey}\u0000${noteId}` (one place per note, ADR-034). */
+  cardsExpanded: string | null
   scrollToSection: { id: SectionId; nonce: number } | null
   cards: CardsOptions
   toasts: Toast[]
@@ -108,6 +110,7 @@ export const useApp = create<AppState>(() => ({
   manuscriptSplit: false,
   outlineCollapsed: [],
   inlineNoteId: null,
+  cardsExpanded: null,
   scrollToSection: null,
   cards: { query: '', groupBy: 'tag', sort: 'created', showArchived: false },
   toasts: [],
@@ -258,6 +261,7 @@ export async function switchWorkspace(id: WorkspaceId): Promise<boolean> {
     multiSelect: false,
     manuscriptSplit: false,
     inlineNoteId: null,
+    cardsExpanded: null,
     outlineCollapsed: [],
   })
   void window.facet.setActiveWorkspace(id)

@@ -581,7 +581,12 @@ h4 {
 .cardgrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+  /* "dense": the cards after an expanded one fill the rest of its row; the panel takes the next row. */
+  grid-auto-flow: row dense;
   gap: 9px;
+}
+.card-expand {
+  grid-column: 1 / -1;
 }
 .memocard {
   aspect-ratio: 1 / 1;
@@ -598,6 +603,9 @@ h4 {
 .memocard:hover {
   border-color: #7d6b96;
   background: #2b2a32;
+}
+.memocard.expanded {
+  border-color: #8d76b3;
 }
 .memocard.selected {
   outline: 2px solid var(--accent);

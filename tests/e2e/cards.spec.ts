@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { readFile, readdir } from 'node:fs/promises'
+import { readFile, readdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { launch, setupEnv } from './fixtures'
 
@@ -221,5 +221,78 @@ test('UI-15 new note dialog takes a title and a Markdown body; errors keep the i
   await expect
     .poll(() => noteFileByTitle(env.zao.dir, 'Microprobe settings'))
     .toBe('# Microprobe settings\n\n15 kV, 10 nA.')
+  await app.close()
+})
+
+test('UI-12 / UI-16 Cards: click expands the full text below the card for editing, in sync', async () => {
+  const env = await setupEnv()
+  const { app, page } = await launch(env.userData)
+  await page.getByTestId('tab-Cards').click()
+  const n1 = page.locator(`[data-testid="memo-card"][data-note-id="${env.zao.noteIds.n1}"]`)
+  await expect(n1).toHaveCount(2) // tags Petrology and Zoning
+  const panel = page.getByTestId('card-body-panel')
+  const body = panel.getByTestId('card-body')
+  await n1.first().click()
+  // One place only, below the card's row, across the full grid width.
+  await expect(panel).toHaveCount(1)
+  await expect(n1.first()).toHaveAttribute('aria-expanded', 'true')
+  await expect(n1.nth(1)).toHaveAttribute('aria-expanded', 'false')
+  const card = (await n1.first().boundingBox())!
+  const box = (await panel.boundingBox())!
+  const grid = (await page.getByTestId('card-group').first().locator('.cardgrid').boundingBox())!
+  expect(box.y).toBeGreaterThanOrEqual(card.y + card.height)
+  expect(Math.abs(box.width - grid.width)).toBeLessThan(2)
+  await expect(body).toContainText('Reverse zoning in plagioclase records')
+
+  // Editing syncs to the right pane, the other card of the same note and the file.
+  await body.click()
+  await page.keyboard.press('Control+End')
+  await page.keyboard.type(' Edited in card.')
+  await page.keyboard.press('Enter') // stays in the editor, does not toggle the card
+  await page.keyboard.type('Second line.')
+  await expect(panel).toBeVisible()
+  await expect(page.getByTestId('right-pane').getByTestId('note-body')).toContainText('Edited in card.')
+  await expect(n1.nth(1).locator('p')).toContainText('Edited in card. Second line.')
+  const file = path.join(env.zao.dir, 'notes', `${env.zao.noteIds.n1}.md`)
+  await expect.poll(() => readFile(file, 'utf8')).toContain('Edited in card.\nSecond line.')
+
+  // Search, sort and grouping keep working; the note being edited stays while it no longer matches.
+  await page.getByTestId('cards-search').fill('plagioclase')
+  await expect(page.getByTestId('memo-card')).toHaveCount(2)
+  await body.click()
+  await page.keyboard.press('Control+a')
+  await page.keyboard.type('Rewritten body.')
+  await expect(panel).toBeVisible()
+  await expect.poll(() => readFile(file, 'utf8')).toBe('# Reverse zoning\n\nRewritten body.')
+  await page.getByTestId('cards-sort').selectOption('title')
+  await expect(panel).toBeVisible()
+  await page.getByTestId('cards-groupby').selectOption('none')
+  await expect(panel).toBeVisible() // reopened at the note's place in the new grouping
+  await page.getByTestId('card-body-close').click()
+  await expect(panel).toHaveCount(0)
+  await expect(page.getByTestId('memo-card')).toHaveCount(0) // no longer matches the search
+  await page.getByTestId('cards-search').fill('')
+
+  // Clicking again collapses; Escape in the editor collapses.
+  const n2 = page.locator(`[data-testid="memo-card"][data-note-id="${env.zao.noteIds.n2}"]`)
+  await n2.click()
+  await expect(panel).toHaveCount(1)
+  await n2.click()
+  await expect(panel).toHaveCount(0)
+  await n2.click()
+  await body.click()
+  await page.keyboard.press('Escape')
+  await expect(panel).toHaveCount(0)
+
+  // An external edit while typing shows the conflict banner inside the panel.
+  await n2.click()
+  await body.click()
+  await page.keyboard.press('Control+End')
+  await writeFile(
+    path.join(env.zao.dir, 'notes', `${env.zao.noteIds.n2}.md`),
+    '# Diffusion timescales\n\nExternal.',
+  )
+  await page.keyboard.type(' local typing')
+  await expect(panel.getByRole('alert').filter({ hasText: '別の場所' })).toBeVisible({ timeout: 8000 })
   await app.close()
 })
