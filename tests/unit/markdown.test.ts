@@ -5,6 +5,7 @@ import {
   generateManuscript,
   manuscriptToMarkdown,
   prepareNoteBody,
+  stripHeadings,
 } from '../../src/shared/markdown/manuscript'
 import { brokenLinks, findWikiLinks, linkInfo, renameWikiLinks } from '../../src/shared/markdown/wikilink'
 import { run, sampleWorkspace, testContext } from '../fixtures/builders'
@@ -113,5 +114,93 @@ describe('manuscript (DAT-03)', () => {
     ]).state
     const md = manuscriptToMarkdown(generateManuscript(moved))
     expect(md.indexOf('Previous work')).toBeLessThan(md.indexOf('Constraining'))
+  })
+})
+
+describe('manuscript headings (DAT-03, ADR-033)', () => {
+  it('drops ATX headings H1–H6 and keeps the text under them', () => {
+    for (let d = 1; d <= 6; d++) {
+      expect(prepareNoteBody(`${'#'.repeat(d)} Heading\nBody text.`)).toEqual({
+        kind: 'inline',
+        text: 'Body text.',
+      })
+    }
+    expect(prepareNoteBody('## Closed ##\n\nBody.')).toEqual({ kind: 'inline', text: 'Body.' })
+    expect(prepareNoteBody('#\nBody.')).toEqual({ kind: 'inline', text: 'Body.' })
+  })
+
+  it('drops Setext headings', () => {
+    expect(prepareNoteBody('Title\n=====\n\nBody.')).toEqual({ kind: 'inline', text: 'Body.' })
+    expect(prepareNoteBody('Sub\n---\nBody.')).toEqual({ kind: 'inline', text: 'Body.' })
+  })
+
+  it('treats a heading-only note as empty', () => {
+    expect(prepareNoteBody('# Only a heading\n\n## Another')).toEqual({ kind: 'empty' })
+  })
+
+  it('keeps paragraphs around a removed heading separate, without a heading warning', () => {
+    expect(stripHeadings('Intro.\n## Details\nMore.')).toBe('Intro.\n\nMore.')
+    expect(stripHeadings('Intro.\n\n## Details\n\nMore.')).toBe('Intro.\n\nMore.')
+    const p = prepareNoteBody('Intro.\n\n## Details\n\nMore.')
+    expect(p.kind).toBe('complex')
+    if (p.kind === 'complex') {
+      expect(p.reasons).toEqual(['複数段落'])
+      expect(p.markdown).toBe('Intro.\n\nMore.')
+    }
+  })
+
+  it('never touches # inside code, math, HTML, escapes or hashtags', () => {
+    const md = [
+      'Text.',
+      '',
+      '```',
+      '# not a heading',
+      '```',
+      '',
+      '~~~python',
+      '## comment',
+      '~~~',
+      '',
+      '    # indented code',
+      '',
+      '$$',
+      '# x = 1',
+      '$$',
+      '',
+      '<h2>html heading</h2>',
+      '',
+      '\\# escaped and #tag and `# inline`',
+    ].join('\n')
+    expect(stripHeadings(md)).toBe(md)
+  })
+
+  it('removes headings inside block quotes and keeps list structure', () => {
+    expect(stripHeadings('> ## Quoted\n> body')).toBe('> body')
+    expect(stripHeadings('- ## Item heading\n- plain')).toBe('- Item heading\n- plain')
+    expect(stripHeadings('1. # One #\n2. two')).toBe('1. One\n2. two')
+  })
+
+  it('handles CRLF bodies and leaves the original string unchanged', () => {
+    const body = '## Heading\r\nBody with [[Link]].\r\n'
+    const copy = body.slice()
+    expect(prepareNoteBody(body)).toEqual({ kind: 'inline', text: 'Body with Link.' })
+    expect(body).toBe(copy)
+  })
+
+  it('joins a note with a heading into its paragraph in the manuscript', () => {
+    const { state, ids } = sampleWorkspace()
+    const st = run(state, [
+      {
+        type: 'note.updateBody',
+        id: ids.n3,
+        body: '## Aside\nConstraining the timescales matters.',
+        baseRev: null,
+      },
+    ]).state
+    const m = generateManuscript(st)
+    const md = manuscriptToMarkdown(m)
+    expect(md).not.toContain('Aside')
+    expect(md).toContain('Constraining the timescales matters.')
+    expect(m.warnings).toEqual([])
   })
 })

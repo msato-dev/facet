@@ -2,7 +2,7 @@
 import { computeNumbering } from '../domain/numbering'
 import type { DomainState, GroupId, GroupNode, NoteId, SectionId, SectionNode } from '../domain/types'
 import { joinFragments, joinSoftLines } from './join'
-import { parseMarkdown, protectedRanges } from './parse'
+import { parseMarkdown, protectedRanges, visit } from './parse'
 import { displayText, scanWikiLinks } from './wikilink'
 
 export type ManuscriptBlock =
@@ -55,12 +55,68 @@ export function dropWikiLinkOnlyLines(md: string): string {
   return kept.join('\n')
 }
 
+// A line that could start or underline a heading (ATX, possibly after quote/list markers, or Setext).
+const MAYBE_HEADING = /^[ \t>*+\-\d.)]*#|^[ \t>]*(?:=+|-+)[ \t]*$/m
+
+/**
+ * Remove H1–H6 headings (ATX and Setext) from a note body, keeping the text under them (ADR-033).
+ * Headings are found in the Markdown AST, so `#` inside code, math, HTML or escapes is never touched.
+ * - A heading that starts its line (top level or in a block quote) is removed with its line(s).
+ *   One adjacent blank line goes with it, and a blank line replaces it when it sat between two
+ *   text lines, so the paragraphs around it stay separate.
+ * - A heading on the same line as a list marker (`- ## X`) loses only its `#` marks, so the list
+ *   structure survives.
+ */
+export function stripHeadings(md: string): string {
+  if (!MAYBE_HEADING.test(md)) return md
+  const edits: Array<{ from: number; to: number; insert: string }> = []
+  visit(parseMarkdown(md), (n) => {
+    if (n.type !== 'heading') return
+    const start = n.position?.start.offset
+    const end = n.position?.end.offset
+    if (start == null || end == null) return false
+    const lineStart = md.lastIndexOf('\n', start - 1) + 1
+    const prefix = md.slice(lineStart, start)
+    if (/^[ \t>]*$/.test(prefix)) edits.push(removeLines(md, lineStart, end, prefix))
+    else edits.push({ from: start, to: end, insert: headingText(md.slice(start, end)) })
+    return false
+  })
+  let out = md
+  for (const e of edits.sort((a, b) => b.from - a.from))
+    out = out.slice(0, e.from) + e.insert + out.slice(e.to)
+  return out
+}
+
+function removeLines(md: string, lineStart: number, end: number, prefix: string) {
+  const nl = md.indexOf('\n', end)
+  let to = nl === -1 ? md.length : nl + 1
+  const blank = prefix.includes('>') ? /^[ \t>]*$/ : /^[ \t]*$/
+  const prevStart = lineStart === 0 ? -1 : md.lastIndexOf('\n', lineStart - 2) + 1
+  const prevBlank = prevStart === -1 || blank.test(md.slice(prevStart, lineStart - 1))
+  const nextEnd = md.indexOf('\n', to)
+  const next = to >= md.length ? null : md.slice(to, nextEnd === -1 ? md.length : nextEnd)
+  if (next === null || blank.test(next)) {
+    if (prevBlank && next !== null) to = nextEnd === -1 ? md.length : nextEnd + 1
+    return { from: lineStart, to, insert: '' }
+  }
+  // Between two text lines: leave a blank line so they do not merge into one paragraph.
+  return { from: lineStart, to, insert: prevBlank ? '' : prefix.replace(/[ \t]+$/, '') + '\n' }
+}
+
+/** The text of a heading without its markers (ATX `#`s, or the Setext underline). */
+function headingText(src: string): string {
+  if (src.includes('\n') && !/^#/.test(src)) return src.slice(0, src.lastIndexOf('\n')).trimEnd()
+  return src
+    .replace(/^#{1,6}(?:[ \t]+|$)/, '')
+    .replace(/(?:^|[ \t]+)#+[ \t]*$/, '')
+    .trimEnd()
+}
+
 const BLOCK_REASON: Record<string, string> = {
   table: '表',
   math: 'ブロック数式',
   code: 'コードブロック',
   list: 'リスト',
-  heading: '見出し',
   blockquote: '引用ブロック',
   thematicBreak: '区切り線',
   html: 'HTML',
@@ -84,7 +140,8 @@ export function prepareNoteBody(body: string): PreparedNote {
 }
 
 function prepareNoteBodyUncached(body: string): PreparedNote {
-  const cleaned = dropWikiLinkOnlyLines(body.replace(/\r\n?/g, '\n')).trim()
+  // Section headings come from the Outline only, so headings inside a note are dropped (SPEC §8.3).
+  const cleaned = stripHeadings(dropWikiLinkOnlyLines(body.replace(/\r\n?/g, '\n'))).trim()
   if (!cleaned) return { kind: 'empty' }
   const tree = parseMarkdown(cleaned)
   const blocks = tree.children.filter((c) => c.type !== 'definition')
