@@ -1,14 +1,16 @@
-# 引き継ぎメモ（2026-11-08 時点）
+# 引き継ぎメモ（2026-11-09 時点）
 
 次のセッションが最初に読むためのメモ。解決したら該当項目を消し、不要になったらファイルごと削除する。
 
 ## 現在の状態
 
-- バージョン 0.1.0（タグ `v0.1.0` = ee6eef8）。`main` と `develop` は GitHub（`git@github.com:msato-dev/facet.git`）へ push 済み。リモートの既定ブランチは `main`。
+- バージョン 0.2.0（`package.json`、`CHANGELOG.md`）。メモの作成・表示・編集の改修（SPEC v3.1、ADR-033〜037、`docs/IMPLEMENTATION_PLAN.md` の「改修計画 0.2」）を `develop` に実装済み。**`develop` はまだ push しておらず、`v0.2.0` タグも未作成**。
+- 0.1.0（タグ `v0.1.0` = ee6eef8）は `main` と `develop` とも GitHub（`git@github.com:msato-dev/facet.git`）へ push 済み。リモートの既定ブランチは `main`。
 - 開発は `develop` ブランチで行う。作業フォルダーは WSL の `/home/mthr/data/facet`。
-- ローカル（WSL）では typecheck、lint、単体・統合テスト 54 件、E2E 30 件がすべて通る。
-- CI（Linux と Windows）は run 42479582964（001b802）で両方通った（E2E 30 件、Windows はパッケージ版に対して実行）。Electron 本体のダウンロードは不安定なので、CI ではキャッシュし、`install.js` を 3 回までリトライする。Playwright の失敗は Actions の注記に出る。
-- Windows 11 実機での WIN-01/WIN-02 の確認はまだ（`docs/TEST_MATRIX.md` の手動チェックリスト）。CI の成果物の EXE で確認できる。
+- ローカル（WSL）では typecheck、lint、単体・統合テスト 64 件、E2E 35 件がすべて通る。
+- 次の作業: `develop` を push して CI（Linux と Windows のパッケージ版 E2E）を確認する。通ったら Windows 11 実機で `docs/TEST_MATRIX.md` の手動チェックリスト（6・7 は 0.2.0 の追加分: IME 入力、ズーム中の編集）を確認し、`v0.2.0` タグを付ける。
+- E2E の UI-05（Canvas のパン・ズーム）が一度だけタイムアウトした（単独の再実行は 4/4 成功）。再発したら調べる。
+- Electron 本体のダウンロードは不安定なので、CI ではキャッシュし、`install.js` を 3 回までリトライする。Playwright の失敗は Actions の注記に出る。
 
 ## 環境メモ
 
