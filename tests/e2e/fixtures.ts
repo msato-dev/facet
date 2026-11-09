@@ -342,12 +342,14 @@ export async function launch(userData: string): Promise<{ app: ElectronApplicati
 
 export async function setTestHook(
   app: ElectronApplication,
-  key: 'browseResult' | 'saveResult' | 'openFileResult',
-  value: string | null,
+  key: 'browseResult' | 'saveResult' | 'openFileResult' | 'executeDelayMs',
+  value: string | number | null,
 ): Promise<void> {
   await app.evaluate(
     ({}, [k, v]) => {
-      ;(globalThis as unknown as { __facetTest: Record<string, string | null> }).__facetTest[k as string] = v
+      ;(globalThis as unknown as { __facetTest: Record<string, string | number | null> }).__facetTest[
+        k as string
+      ] = v
     },
     [key, value] as const,
   )

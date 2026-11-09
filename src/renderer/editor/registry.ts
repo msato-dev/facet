@@ -5,8 +5,8 @@ import type { NoteId } from '../../shared/domain/types'
 
 /** What an editor exposes to the other editors of the same note. */
 export interface ViewHandle {
-  /** Saves pending text; resolves false on a conflict or error. */
-  flush: () => Promise<boolean>
+  /** Saves pending text; resolves false on a conflict or error. `after`: see flushSiblings. */
+  flush: (opts?: { after?: number }) => Promise<boolean>
   /** True while the editor has unsaved text or a save in flight. */
   busy: () => boolean
   /** Drop local text and show the stored body (the conflict banner's "load latest"). */
@@ -39,9 +39,13 @@ export function siblingsBusy(noteId: NoteId, view: EditorView): boolean {
   return siblings(noteId, view).some((h) => h.busy())
 }
 
-/** Save the other editors of the same note. Resolves false when one of them could not save. */
-export async function flushSiblings(noteId: NoteId, view: EditorView): Promise<boolean> {
-  const results = await Promise.all(siblings(noteId, view).map((h) => h.flush().catch(() => false)))
+/**
+ * Save the other editors of the same note. Resolves false when one of them could not save.
+ * `after`: the sequence of the hand-over asking; siblings replay text they hold from an earlier
+ * hand-over before saving, but do not wait for later ones (which may be waiting for us).
+ */
+export async function flushSiblings(noteId: NoteId, view: EditorView, after?: number): Promise<boolean> {
+  const results = await Promise.all(siblings(noteId, view).map((h) => h.flush({ after }).catch(() => false)))
   return results.every(Boolean)
 }
 

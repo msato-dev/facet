@@ -1,6 +1,6 @@
 // CodeMirror 6 Markdown editor bound to one note: autosave, [[ completion, link navigation, conflicts.
 import { useEffect, useRef, useState } from 'react'
-import { Annotation, EditorState } from '@codemirror/state'
+import { Annotation, EditorState, StateEffect, StateField } from '@codemirror/state'
 import { EditorView, keymap } from '@codemirror/view'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { autocompletion } from '@codemirror/autocomplete'
@@ -26,6 +26,41 @@ import {
 } from './registry'
 
 const SAVE_DELAY = 500
+/**
+ * Hand-over between editors of one note (ADR-035). Typing done while another editor still has
+ * unsaved text is held in a segment and replayed once that text is saved and shown here. Each focus
+ * starts a new segment with a higher sequence number; a segment only ever waits for lower numbers
+ * (its predecessor here, and earlier segments of the other editors), so waits can never cycle.
+ */
+let holdSeq = 0
+interface Segment {
+  seq: number
+  texts: string[]
+  /** Settles once the segment's text is replayed. */
+  done: Promise<void> | null
+}
+
+/** Where each segment's typing started, mapped through every later change (so other editors' text
+ *  arriving at that spot goes before it). */
+const anchorEffect = StateEffect.define<{ seq: number; pos: number | null }>()
+const heldAnchors = StateField.define<ReadonlyMap<number, number>>({
+  create: () => new Map(),
+  update(value, tr) {
+    let next = value
+    if (tr.docChanged && value.size)
+      next = new Map([...value].map(([seq, pos]) => [seq, tr.changes.mapPos(pos, 1)]))
+    for (const e of tr.effects) {
+      if (!e.is(anchorEffect)) continue
+      const m = new Map(next)
+      if (e.value.pos === null) m.delete(e.value.seq)
+      else m.set(e.value.seq, e.value.pos)
+      next = m
+    }
+    return next
+  },
+})
+/** Marks the replay of held text, which must pass the hold filter. */
+const replayAnnotation = Annotation.define<boolean>()
 const remoteAnnotation = Annotation.define<boolean>()
 
 /** Follow a WikiLink with Ctrl/Cmd+click. */
@@ -74,7 +109,7 @@ export function MarkdownEditor({ noteId, autoFocus, minHeight = 200, testId }: P
     inflight: null as Promise<boolean> | null,
   })
   // Typing held back while another editor of this note finishes saving (see takeOver).
-  const held = useRef({ active: false, texts: [] as string[] })
+  const held = useRef<Segment[]>([])
   const [conflict, setConflict] = useState(false)
   const [status, setStatus] = useState<'saved' | 'pending' | 'saving'>('saved')
 
@@ -129,8 +164,13 @@ export function MarkdownEditor({ noteId, autoFocus, minHeight = 200, testId }: P
       s.inflight = null
     }
   }
-  /** Save until nothing is pending (typing can continue while a save is in flight). */
-  const flush = async (): Promise<boolean> => {
+  /**
+   * Save until nothing is pending (typing can continue while a save is in flight). Text held back by
+   * an earlier hand-over is replayed first, so it is saved here, in order (`after`: the sequence of
+   * the hand-over asking; without it, every hold is waited for).
+   */
+  const flush = async ({ after }: { after?: number } = {}): Promise<boolean> => {
+    await Promise.all(held.current.filter((h) => after === undefined || h.seq < after).map((h) => h.done))
     for (let i = 0; i < 5; i++) {
       if (!(await saveRef.current())) return false
       if (!sync.current.dirty) return true
@@ -145,23 +185,34 @@ export function MarkdownEditor({ noteId, autoFocus, minHeight = 200, testId }: P
    * Until it is saved and this editor shows the result, typing here is held back and replayed on top,
    * so this editor never edits an older revision and conflicts with ourselves (ADR-035).
    */
-  const takeOver = async (view: EditorView) => {
+  const takeOver = async (view: EditorView, seg: Segment, previous: Promise<void> | null) => {
     try {
-      await flushSiblings(noteId, view)
+      await previous
+      await flushSiblings(noteId, view, seg.seq)
       const latest = useApp.getState().snapshot?.state.notes[noteId]
       if (viewRef.current === view && latest && !sync.current.dirty) {
         if (view.state.doc.toString() !== latest.body) replaceDoc(view, latest.body)
         sync.current.baseRev = latest.rev
       }
     } finally {
-      const texts = held.current.texts
-      held.current = { active: false, texts: [] }
-      if (viewRef.current === view && texts.length)
-        view.dispatch(view.state.replaceSelection(texts.join('')), {
-          userEvent: 'input.type',
-          scrollIntoView: true,
-        })
+      if (viewRef.current === view) replay(view, seg)
     }
+  }
+  /** Type a segment's held text where it was typed (it becomes ordinary unsaved text, autosaved). */
+  const replay = (view: EditorView, seg: Segment) => {
+    held.current = held.current.filter((h) => h !== seg)
+    const text = seg.texts.join('')
+    const sel = view.state.selection.main
+    const at = view.state.field(heldAnchors).get(seg.seq) ?? sel.head
+    view.dispatch({
+      ...(text ? { changes: { from: at, insert: text } } : {}),
+      // The cursor follows the text if it is still where the typing started.
+      ...(text && sel.empty && sel.head === at ? { selection: { anchor: at + text.length } } : {}),
+      effects: anchorEffect.of({ seq: seg.seq, pos: null }),
+      annotations: replayAnnotation.of(true),
+      userEvent: 'input.type',
+      scrollIntoView: !!text,
+    })
   }
   const takeOverRef = useRef(takeOver)
   takeOverRef.current = takeOver
@@ -186,13 +237,17 @@ export function MarkdownEditor({ noteId, autoFocus, minHeight = 200, testId }: P
             ...historyKeymap,
           ]),
           ...markdownBase(),
+          heldAnchors,
           EditorState.transactionFilter.of((tr) => {
-            if (!held.current.active || !tr.docChanged || tr.annotation(remoteAnnotation)) return tr
-            if (tr.isUserEvent('input'))
-              tr.changes.iterChanges((_a, _b, _c, _d, inserted) =>
-                held.current.texts.push(inserted.toString()),
-              )
-            return []
+            const segs = held.current
+            if (!segs.length || !tr.docChanged) return tr
+            if (tr.annotation(remoteAnnotation) || tr.annotation(replayAnnotation)) return tr
+            // While held: typed text is kept for the replay (deletions are dropped).
+            if (!tr.isUserEvent('input')) return []
+            const seg = segs[segs.length - 1]
+            tr.changes.iterChanges((_a, _b, _c, _d, inserted) => seg.texts.push(inserted.toString()))
+            if (tr.startState.field(heldAnchors).has(seg.seq)) return []
+            return { effects: anchorEffect.of({ seq: seg.seq, pos: tr.startState.selection.main.from }) }
           }),
           linkClick(noteId),
           EditorView.contentAttributes.of({
@@ -202,9 +257,12 @@ export function MarkdownEditor({ noteId, autoFocus, minHeight = 200, testId }: P
           EditorView.updateListener.of((u) => {
             if (u.focusChanged && u.view.hasFocus) {
               noteFocused(noteId, u.view)
-              if (siblingsBusy(noteId, u.view)) {
-                held.current.active = true // from this keystroke on, before any await
-                void takeOverRef.current(u.view)
+              if (held.current.length || siblingsBusy(noteId, u.view)) {
+                // Hold from the next keystroke on, before any await.
+                const previous = held.current.at(-1)?.done ?? null
+                const seg: Segment = { seq: ++holdSeq, texts: [], done: null }
+                held.current = [...held.current, seg]
+                seg.done = takeOverRef.current(u.view, seg, previous)
               }
             }
             if (u.selectionSet) rememberCursor(noteId, u.state.selection.main.head)
@@ -235,12 +293,14 @@ export function MarkdownEditor({ noteId, autoFocus, minHeight = 200, testId }: P
     }
     const unregister = registerView(noteId, view, {
       flush,
-      busy: () => sync.current.dirty || !!sync.current.inflight,
+      busy: () => sync.current.dirty || !!sync.current.inflight || held.current.length > 0,
       loadLatest: () => loadLatestRef.current(false),
     })
     const unflush = registerFlusher(flush)
     if (autoFocus) view.focus()
     return () => {
+      // Text still held back goes in now, so closing the editor never drops it.
+      for (const seg of [...held.current]) replay(view, seg)
       // Keep unsaved text until the save below succeeds (it clears the draft) or fails.
       if (sync.current.dirty) keepDraft(view.state.doc.toString())
       void saveRef.current()

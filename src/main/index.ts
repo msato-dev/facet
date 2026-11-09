@@ -36,7 +36,7 @@ const userDataDir =
     : path.join(app.getPath('appData'), 'FACET')
 app.setPath('userData', userDataDir)
 
-/** Test hooks: replace OS dialogs during automated E2E runs only. */
+/** Test hooks: replace OS dialogs (and simulate a slow disk) during automated E2E runs only. */
 interface TestHooks {
   browseResult: string | null
   saveResult: string | null
@@ -44,6 +44,8 @@ interface TestHooks {
   /** Answer to the "unsaved changes" close prompt; null means discard (so test teardown never hangs). */
   closeChoice: 'cancel' | 'discard' | null
   closePrompts: number
+  /** Delay before each command is executed, like a slow disk or CI machine. */
+  executeDelayMs: number
 }
 const testHooks: TestHooks = {
   browseResult: null,
@@ -51,6 +53,7 @@ const testHooks: TestHooks = {
   openFileResult: null,
   closeChoice: null,
   closePrompts: 0,
+  executeDelayMs: 0,
 }
 if (E2E) (globalThis as unknown as { __facetTest: TestHooks }).__facetTest = testHooks
 
@@ -104,7 +107,10 @@ function registerIpc(): void {
       ? { ok: true, snapshot: s.snapshot() }
       : { ok: false, message: manager.summaries().find((w) => w.id === id)?.error ?? 'Workspaceを開けません' }
   })
-  handle(CH.execute, z.tuple([zId, zCommand]), (id, cmd) => manager.execute(id, (s) => s.execute(cmd)))
+  handle(CH.execute, z.tuple([zId, zCommand]), async (id, cmd) => {
+    if (E2E && testHooks.executeDelayMs) await new Promise((r) => setTimeout(r, testHooks.executeDelayMs))
+    return manager.execute(id, (s) => s.execute(cmd))
+  })
   handle(CH.undo, z.tuple([zId]), (id) => manager.execute(id, (s) => s.undo()))
   handle(CH.redo, z.tuple([zId]), (id) => manager.execute(id, (s) => s.redo()))
   handle(CH.restoreFromTrash, z.tuple([zId, zId]), (id, noteId) =>
