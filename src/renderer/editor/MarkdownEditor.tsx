@@ -16,7 +16,14 @@ import {
   useApp,
 } from '../store/store'
 import { markdownBase, wikiCompletion } from './markdownExtensions'
-import { flushSiblings, noteFocused, registerView, rememberCursor, siblingsBusy } from './registry'
+import {
+  flushSiblings,
+  loadLatestInSiblings,
+  noteFocused,
+  registerView,
+  rememberCursor,
+  siblingsBusy,
+} from './registry'
 
 const SAVE_DELAY = 500
 const remoteAnnotation = Annotation.define<boolean>()
@@ -229,6 +236,7 @@ export function MarkdownEditor({ noteId, autoFocus, minHeight = 200, testId }: P
     const unregister = registerView(noteId, view, {
       flush,
       busy: () => sync.current.dirty || !!sync.current.inflight,
+      loadLatest: () => loadLatestRef.current(false),
     })
     const unflush = registerFlusher(flush)
     if (autoFocus) view.focus()
@@ -271,10 +279,13 @@ export function MarkdownEditor({ noteId, autoFocus, minHeight = 200, testId }: P
     if (note.rev !== s.baseRev) setConflict(true)
   }, [note?.rev, note?.body]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const loadLatest = () => {
+  /** `all`: the user chose it here, so the other editors of this note (which may hold the same
+   *  unsaved draft) drop their text as well, instead of keeping the conflict alive. */
+  const loadLatest = (all = true) => {
     const view = viewRef.current
     const latest = useApp.getState().snapshot?.state.notes[noteId]
     if (!view || !latest) return
+    if (all) loadLatestInSiblings(noteId, view)
     replaceDoc(view, latest.body)
     sync.current.dirty = false
     sync.current.baseRev = latest.rev
@@ -283,12 +294,15 @@ export function MarkdownEditor({ noteId, autoFocus, minHeight = 200, testId }: P
     setStatus('saved')
   }
 
+  const loadLatestRef = useRef(loadLatest)
+  loadLatestRef.current = loadLatest
+
   return (
     <div className="md-editor" data-status={status}>
       {conflict && (
         <div className="conflict-banner" role="alert">
           <span>このメモは別の場所（外部エディター等）で変更されました。</span>
-          <button className="btn small" onClick={loadLatest}>
+          <button className="btn small" onClick={() => loadLatest()}>
             最新を読み込む
           </button>
           <button className="btn small" onClick={() => void save(true)}>

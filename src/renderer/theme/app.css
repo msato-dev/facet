@@ -1067,6 +1067,9 @@ h4 {
   width: 22px;
 }
 .para {
+  /* React Flow turns pointer events off for nodes that are neither draggable nor selectable (the
+     section tree's groups); their chips, toggle and menu must stay clickable. */
+  pointer-events: all;
   background: #25252b;
   border: 1px solid #42404b;
   border-radius: 7px;

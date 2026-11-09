@@ -18,6 +18,7 @@ import { sectionBreadcrumb } from '../../shared/domain/numbering'
 import { findSection } from '../../shared/domain/structure'
 import type { GroupNode as GroupData } from '../../shared/domain/types'
 import { openContextMenu } from '../common/ContextMenu'
+import { NoteBodyPanel } from '../editor/NoteBodyPanel'
 import {
   copyNote,
   createGroup,
@@ -36,61 +37,77 @@ function preview(body: string): string {
   return body.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_m, t, a) => a ?? t)
 }
 
+/**
+ * Click on a note: select it and, outside multi-select, open or close its full text below it
+ * (ADR-034). The second click of a double click is ignored so double click still opens the right pane.
+ */
+function clickNote(noteId: string, groupId: string | null, e: React.MouseEvent) {
+  e.stopPropagation()
+  if (e.detail > 1) return
+  selectNote(noteId, groupId)
+  if (useApp.getState().multiSelect) return
+  useApp.setState((s) => ({ canvasExpandedNoteId: s.canvasExpandedNoteId === noteId ? null : noteId }))
+}
+const closeExpanded = () => useApp.setState({ canvasExpandedNoteId: null })
+
 function NoteChip({ noteId, index, groupId }: { noteId: string; index: number; groupId: string }) {
   const note = useApp((s) => s.snapshot?.state.notes[noteId])
   const selected = useApp((s) =>
     s.multiSelect ? s.selectedNoteIds.includes(noteId) : s.selectedNoteId === noteId,
   )
+  const expanded = useApp((s) => s.canvasExpandedNoteId === noteId)
   const [zone, setZone] = useState<'before' | 'after' | null>(null)
   if (!note) return null
   return (
-    <div
-      className={`note-chip nodrag nopan ${selected ? 'selected' : ''} ${zone ? `drop-${zone}` : ''}`}
-      draggable
-      data-testid="canvas-note"
-      data-note-id={noteId}
-      onDragStart={(e) => {
-        e.stopPropagation()
-        e.dataTransfer.setData(NOTE_MIME, noteId)
-        e.dataTransfer.effectAllowed = 'move'
-      }}
-      onDragOver={(e) => {
-        if (!e.dataTransfer.types.includes(NOTE_MIME)) return
-        e.preventDefault()
-        e.stopPropagation()
-        const r = e.currentTarget.getBoundingClientRect()
-        setZone(e.clientY < r.top + r.height / 2 ? 'before' : 'after')
-      }}
-      onDragLeave={() => setZone(null)}
-      onDrop={(e) => {
-        e.preventDefault()
-        e.stopPropagation()
-        setZone(null)
-        const id = e.dataTransfer.getData(NOTE_MIME)
-        const r = e.currentTarget.getBoundingClientRect()
-        if (id && id !== noteId)
-          void exec({
-            type: 'note.move',
-            id,
-            target: {
-              kind: 'note',
-              id: noteId,
-              position: e.clientY < r.top + r.height / 2 ? 'before' : 'after',
-            },
-          })
-      }}
-      onClick={(e) => {
-        e.stopPropagation()
-        selectNote(noteId, groupId)
-      }}
-      onDoubleClick={() => useApp.setState({ rightOpen: true, selectedNoteId: noteId })}
-      title="クリックで選択、ダブルクリックで右ペインで全文編集"
-    >
-      <b>
-        <span className="chip-index">{index + 1}.</span> {note.title}
-      </b>
-      <span className="chip-body">{preview(note.body) || <i className="helper">（本文なし）</i>}</span>
-    </div>
+    <>
+      <div
+        className={`note-chip nodrag nopan ${selected ? 'selected' : ''} ${zone ? `drop-${zone}` : ''}`}
+        aria-expanded={expanded}
+        draggable
+        data-testid="canvas-note"
+        data-note-id={noteId}
+        onDragStart={(e) => {
+          e.stopPropagation()
+          e.dataTransfer.setData(NOTE_MIME, noteId)
+          e.dataTransfer.effectAllowed = 'move'
+        }}
+        onDragOver={(e) => {
+          if (!e.dataTransfer.types.includes(NOTE_MIME)) return
+          e.preventDefault()
+          e.stopPropagation()
+          const r = e.currentTarget.getBoundingClientRect()
+          setZone(e.clientY < r.top + r.height / 2 ? 'before' : 'after')
+        }}
+        onDragLeave={() => setZone(null)}
+        onDrop={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          setZone(null)
+          const id = e.dataTransfer.getData(NOTE_MIME)
+          const r = e.currentTarget.getBoundingClientRect()
+          if (id && id !== noteId)
+            void exec({
+              type: 'note.move',
+              id,
+              target: {
+                kind: 'note',
+                id: noteId,
+                position: e.clientY < r.top + r.height / 2 ? 'before' : 'after',
+              },
+            })
+        }}
+        onClick={(e) => clickNote(noteId, groupId, e)}
+        onDoubleClick={() => useApp.setState({ rightOpen: true, selectedNoteId: noteId })}
+        title="クリックで全文を展開して編集、ダブルクリックで右ペインで編集"
+      >
+        <b>
+          <span className="chip-index">{index + 1}.</span> {note.title}
+        </b>
+        <span className="chip-body">{preview(note.body) || <i className="helper">（本文なし）</i>}</span>
+      </div>
+      {/* Outside the draggable chip, so selecting text never starts a note drag. */}
+      {expanded && <NoteBodyPanel noteId={noteId} testId="canvas-body" onClose={closeExpanded} />}
+    </>
   )
 }
 
@@ -103,6 +120,8 @@ const GroupNodeView = memo(function GroupNodeView({ data }: NodeProps<Node<Group
   const [over, setOver] = useState(false)
   const toggle = (e: React.MouseEvent) => {
     e.stopPropagation()
+    const open = useApp.getState().canvasExpandedNoteId
+    if (expanded && open && group.noteIds.includes(open)) closeExpanded()
     void exec({ type: 'canvas.setGroupExpanded', ids: [group.id], expanded: !expanded })
   }
   const menu = (e: React.MouseEvent) =>
@@ -194,19 +213,22 @@ const LooseNoteView = memo(function LooseNoteView({ data }: NodeProps<Node<{ not
   const selected = useApp((s) =>
     s.multiSelect ? s.selectedNoteIds.includes(data.noteId) : s.selectedNoteId === data.noteId,
   )
+  const expanded = useApp((s) => s.canvasExpandedNoteId === data.noteId)
   if (!note) return null
   return (
     <div
       className={`unassigned-note ${selected ? 'selected' : ''}`}
-      style={{ width: LOOSE_WIDTH }}
+      style={{ width: expanded ? GROUP_WIDTH : LOOSE_WIDTH }}
       data-testid="canvas-unassigned"
       data-note-id={note.id}
-      onClick={() => selectNote(note.id)}
+      aria-expanded={expanded}
+      onClick={(e) => clickNote(note.id, null, e)}
       onDoubleClick={() => useApp.setState({ rightOpen: true, selectedNoteId: note.id })}
     >
       <div className="crumb">Unassigned · No Outline</div>
       <strong>{note.title}</strong>
       <p className="chip-body">{preview(note.body) || <i className="helper">（本文なし）</i>}</p>
+      {expanded && <NoteBodyPanel noteId={note.id} testId="canvas-body" onClose={closeExpanded} />}
       <div
         className="drag-to-group nodrag"
         draggable
@@ -298,9 +320,14 @@ function CanvasInner() {
   const wrapper = useRef<HTMLDivElement>(null)
   const treeSection =
     scope !== 'all' && scope !== 'unassigned' && findSection(state.structure, scope) ? scope : null
+  const expandedId = useApp((s) => s.canvasExpandedNoteId)
+  // Rendered heights: the section tree lays rows out by them, so an expanded note pushes later rows
+  // down. The free layout keeps the user's positions (ADR-036).
+  const [heights, setHeights] = useState<ReadonlyMap<string, number>>(() => new Map())
+  const treeHeights = treeSection ? heights : null
   const layout = useMemo(
-    () => (treeSection ? treeLayout(state, treeSection) : freeLayout(state)),
-    [state, treeSection],
+    () => (treeSection ? treeLayout(state, treeSection, treeHeights ?? undefined) : freeLayout(state)),
+    [state, treeSection, treeHeights],
   )
   const tree = layout.mode === 'tree'
 
@@ -323,6 +350,8 @@ function CanvasInner() {
         data: { group: g.group, crumb: g.crumb, expanded: g.expanded, tree },
         dragHandle: '.para-head',
         draggable: !tree,
+        // In front of neighbours it may now overlap while a note in it is expanded.
+        zIndex: expandedId && g.group.noteIds.includes(expandedId) ? 10 : undefined,
       })
     for (const l of layout.loose)
       nodes.push({
@@ -331,25 +360,35 @@ function CanvasInner() {
         position: { x: l.x, y: l.y },
         data: { noteId: l.noteId },
         draggable: true,
+        zIndex: l.noteId === expandedId ? 10 : undefined,
       })
     return nodes
-  }, [layout, tree])
+  }, [layout, tree, expandedId])
   const [nodes, setNodes] = useState<Node[]>(derivedNodes)
   useEffect(() => setNodes(derivedNodes), [derivedNodes])
   const edges = useMemo<Edge[]>(
     () => layout.edges.map((e) => ({ ...e, type: 'smoothstep', selectable: false, className: 'tree-edge' })),
     [layout],
   )
-  const onNodesChange = useCallback(
-    (changes: NodeChange[]) =>
-      setNodes((ns) =>
-        applyNodeChanges(
-          changes.filter((c) => c.type !== 'select' && c.type !== 'remove'),
-          ns,
-        ),
+  const onNodesChange = useCallback((changes: NodeChange[]) => {
+    setNodes((ns) =>
+      applyNodeChanges(
+        changes.filter((c) => c.type !== 'select' && c.type !== 'remove'),
+        ns,
       ),
-    [],
-  )
+    )
+    // Sub-pixel differences are ignored so re-layout cannot loop.
+    setHeights((prev) => {
+      let next: Map<string, number> | null = null
+      for (const c of changes) {
+        if (c.type !== 'dimensions' || !c.dimensions) continue
+        if (Math.abs((prev.get(c.id) ?? -10) - c.dimensions.height) <= 1) continue
+        next ??= new Map(prev)
+        next.set(c.id, c.dimensions.height)
+      }
+      return next ?? prev
+    })
+  }, [])
 
   // Initial viewport: saved one for All, fit for the tree view.
   const initialised = useRef<string | null>(null)

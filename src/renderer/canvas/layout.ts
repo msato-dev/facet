@@ -85,8 +85,15 @@ export function freeLayout(state: DomainState): CanvasLayout {
   return { mode: 'free', groups, loose, headers: [], edges: [] }
 }
 
-/** Auto tree of a section and its descendants: one row per section, its groups laid out to the right. */
-export function treeLayout(state: DomainState, sectionId: string): CanvasLayout {
+/** Rendered node heights by node id (`g:<groupId>`), measured by React Flow. */
+export type MeasuredHeights = ReadonlyMap<string, number>
+
+/**
+ * Auto tree of a section and its descendants: one row per section, its groups laid out to the right.
+ * Rows use the measured group heights when known (e.g. a note expanded for editing, ADR-036), so
+ * rows never overlap; otherwise an estimate.
+ */
+export function treeLayout(state: DomainState, sectionId: string, measured?: MeasuredHeights): CanvasLayout {
   const loc = findSection(state.structure, sectionId)
   const out: CanvasLayout = { mode: 'tree', groups: [], loose: [], headers: [], edges: [] }
   if (!loc) return out
@@ -113,7 +120,7 @@ export function treeLayout(state: DomainState, sectionId: string): CanvasLayout 
         expanded,
       })
       out.edges.push({ id: `e:${hid}-${gid}`, source: hid, target: gid })
-      rowHeight = Math.max(rowHeight, 74 + estimateGroupHeight(g, expanded))
+      rowHeight = Math.max(rowHeight, 74 + (measured?.get(gid) ?? estimateGroupHeight(g, expanded)))
     })
     y += rowHeight + 48
     for (const c of s.children) if (c.kind === 'section') rec(c, depth + 1, hid)

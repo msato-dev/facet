@@ -9,6 +9,8 @@ export interface ViewHandle {
   flush: () => Promise<boolean>
   /** True while the editor has unsaved text or a save in flight. */
   busy: () => boolean
+  /** Drop local text and show the stored body (the conflict banner's "load latest"). */
+  loadLatest: () => void
 }
 
 const views = new Map<NoteId, Set<EditorView>>()
@@ -41,6 +43,11 @@ export function siblingsBusy(noteId: NoteId, view: EditorView): boolean {
 export async function flushSiblings(noteId: NoteId, view: EditorView): Promise<boolean> {
   const results = await Promise.all(siblings(noteId, view).map((h) => h.flush().catch(() => false)))
   return results.every(Boolean)
+}
+
+/** "Load latest" applies to the note: every other open editor of it drops its local text too. */
+export function loadLatestInSiblings(noteId: NoteId, view: EditorView): void {
+  for (const h of siblings(noteId, view)) h.loadLatest()
 }
 
 export function noteFocused(noteId: NoteId, view: EditorView): void {

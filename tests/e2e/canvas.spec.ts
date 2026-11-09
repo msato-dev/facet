@@ -152,3 +152,99 @@ test('Canvas: drag a note chip into another group changes membership', async () 
   expect(JSON.stringify(s).split(env.zao.noteIds.n7).length - 1).toBe(1)
   await app.close()
 })
+
+test('UI-07 / UI-16 Canvas: click expands the full text below a note for editing, without moving the canvas', async () => {
+  const env = await setupEnv()
+  const { app, page } = await launch(env.userData)
+  await page.getByTestId('fit-all').click()
+  await page.waitForTimeout(1000) // let the viewport save settle
+  const p2 = page.locator(`[data-testid="canvas-group"][data-group-id="${env.zao.groupIds.p2}"]`)
+  const chip = page.locator(`[data-testid="canvas-note"][data-note-id="${env.zao.noteIds.n7}"]`)
+  const panel = page.getByTestId('canvas-body-panel')
+  const body = panel.getByTestId('canvas-body')
+  await chip.click()
+  await expect(panel).toHaveCount(1)
+  await expect(chip).toHaveAttribute('aria-expanded', 'true')
+  await expect(p2.getByTestId('canvas-body-panel')).toHaveCount(1)
+  const cb = (await chip.boundingBox())!
+  expect((await panel.boundingBox())!.y).toBeGreaterThanOrEqual(cb.y + cb.height - 1)
+  await expect(body).toContainText('electron microprobe analyses')
+
+  // Edits sync to the right pane and the file.
+  await body.click()
+  await page.keyboard.press('Control+End')
+  await page.keyboard.type(' Canvas edit.')
+  await expect(page.getByTestId('right-pane').getByTestId('note-body')).toContainText('Canvas edit.')
+  const noteFile = path.join(env.zao.dir, 'notes', `${env.zao.noteIds.n7}.md`)
+  await expect.poll(() => readFile(noteFile, 'utf8')).toContain('Canvas edit.')
+
+  // Selecting text by dragging and scrolling over the editor neither move the node, pan nor zoom.
+  const canvasFile = path.join(env.zao.dir, 'canvas-state.json')
+  const savedCanvas = await readFile(canvasFile, 'utf8')
+  const transform = await viewportTransform(page)
+  const groupBox = (await p2.boundingBox())!
+  const bb = (await body.boundingBox())!
+  await page.mouse.move(bb.x + 6, bb.y + 8)
+  await page.mouse.down()
+  await page.mouse.move(bb.x + 160, bb.y + 40, { steps: 6 })
+  await page.mouse.up()
+  const zoomBefore = await zoom(page)
+  await page.mouse.wheel(0, -400)
+  await page.waitForTimeout(900)
+  expect(await zoom(page)).toBe(zoomBefore)
+  expect(await viewportTransform(page)).toBe(transform)
+  const after = (await p2.boundingBox())!
+  expect(Math.abs(after.x - groupBox.x) + Math.abs(after.y - groupBox.y)).toBeLessThan(1)
+  expect(await readFile(canvasFile, 'utf8')).toBe(savedCanvas)
+  expect(await readFile(noteFile, 'utf8')).toContain('Canvas edit.')
+
+  // Clicking again collapses.
+  await chip.click()
+  await expect(panel).toHaveCount(0)
+
+  // Unassigned cards expand too (one note at a time), and widen for editing.
+  const loose = page.locator(`[data-testid="canvas-unassigned"][data-note-id="${env.zao.noteIds.n9}"]`)
+  const narrow = (await loose.boundingBox())!.width
+  await chip.click()
+  await loose.locator('strong').click()
+  await expect(panel).toHaveCount(1)
+  await expect(loose.getByTestId('canvas-body-panel')).toBeVisible()
+  await expect(body).toContainText('Line seven')
+  expect((await loose.boundingBox())!.width).toBeGreaterThan(narrow)
+  await page.getByTestId('canvas-body-close').click()
+  await expect(panel).toHaveCount(0)
+
+  // Multi-select mode only selects.
+  await page.getByTestId('tool-select').click()
+  await chip.click()
+  await expect(panel).toHaveCount(0)
+  await page.getByTestId('tool-select').click()
+
+  // The Outline shows the edit made on the Canvas.
+  await page.getByTestId('tab-Outline').click()
+  await page.locator(`[data-testid="outline-note"][data-id="${env.zao.noteIds.n7}"]`).dblclick()
+  await expect(page.getByTestId('inline-editor').getByTestId('inline-body')).toContainText('Canvas edit.')
+  await app.close()
+})
+
+test('UI-16 Canvas section tree: an expanded note pushes later rows down; collapsing its group closes it', async () => {
+  const env = await setupEnv()
+  const { app, page } = await launch(env.userData)
+  await page.locator(`[data-section-id="${env.zao.sectionIds.results}"]`).click()
+  await expect(page.getByTestId('canvas-status')).toContainText('Auto tree layout')
+  const p3 = page.locator(`[data-testid="canvas-group"][data-group-id="${env.zao.groupIds.p3}"]`)
+  const nextRow = page.getByTestId('tree-header').filter({ hasText: '3.2.' })
+  const before = (await nextRow.boundingBox())!.y
+  await p3.locator(`[data-testid="canvas-note"][data-note-id="${env.zao.noteIds.n1}"]`).click()
+  await expect(p3.getByTestId('canvas-body-panel')).toBeVisible()
+  await expect.poll(async () => (await nextRow.boundingBox())!.y).toBeGreaterThan(before + 10)
+  const g = (await p3.boundingBox())!
+  expect((await nextRow.boundingBox())!.y).toBeGreaterThanOrEqual(g.y + g.height)
+  // Collapsing the Paragraph Group closes the editor; expanding the group does not reopen it.
+  await p3.getByTestId('group-expand').click()
+  await expect(page.getByTestId('canvas-body-panel')).toHaveCount(0)
+  await p3.getByTestId('group-expand').click()
+  await expect(p3.getByTestId('canvas-note')).toHaveCount(1)
+  await expect(page.getByTestId('canvas-body-panel')).toHaveCount(0)
+  await app.close()
+})

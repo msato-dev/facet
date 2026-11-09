@@ -87,13 +87,19 @@ test('a conflict blocks switching workspace, and the draft survives selecting an
   // Another note, then back: the unsaved text and the conflict banner are still there.
   await page.locator(`[data-testid="canvas-note"][data-note-id="${env.zao.noteIds.n1}"]`).click()
   await expect(page.getByTestId('note-body')).not.toContainText('local typing')
+  // (The click also opens the note's Canvas panel, which shows the same draft.)
   await page.locator(`[data-testid="canvas-note"][data-note-id="${env.zao.noteIds.n7}"]`).click()
+  const right = page.getByTestId('right-pane')
+  const panel = page.getByTestId('canvas-body-panel')
   await expect(page.getByTestId('note-body')).toContainText('local typing')
-  await expect(page.getByRole('alert').filter({ hasText: '別の場所' })).toBeVisible()
+  await expect(right.getByRole('alert').filter({ hasText: '別の場所' })).toBeVisible()
+  await expect(panel.getByRole('alert').filter({ hasText: '別の場所' })).toBeVisible()
 
-  // Taking the external version clears the draft; switching works again.
-  await page.getByRole('button', { name: '最新を読み込む' }).click()
+  // Taking the external version in one editor clears the draft in both; switching works again.
+  await right.getByRole('button', { name: '最新を読み込む' }).click()
   await expect(page.getByTestId('note-body')).toContainText('External version.')
+  await expect(panel.getByTestId('canvas-body')).toContainText('External version.')
+  await expect(page.getByRole('alert').filter({ hasText: '別の場所' })).toHaveCount(0)
   await page.getByTestId('workspace-select').selectOption(env.chamber.workspaceId)
   await expect(page.getByTestId('workspace-select')).toHaveValue(env.chamber.workspaceId)
   await app.close()

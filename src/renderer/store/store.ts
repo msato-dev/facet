@@ -82,6 +82,8 @@ interface AppState {
   inlineNoteId: NoteId | null
   /** Card expanded for full-text editing: `${groupKey}\u0000${noteId}` (one place per note, ADR-034). */
   cardsExpanded: string | null
+  /** Canvas note expanded for full-text editing (a note appears once on the Canvas). */
+  canvasExpandedNoteId: NoteId | null
   scrollToSection: { id: SectionId; nonce: number } | null
   cards: CardsOptions
   toasts: Toast[]
@@ -111,6 +113,7 @@ export const useApp = create<AppState>(() => ({
   outlineCollapsed: [],
   inlineNoteId: null,
   cardsExpanded: null,
+  canvasExpandedNoteId: null,
   scrollToSection: null,
   cards: { query: '', groupBy: 'tag', sort: 'created', showArchived: false },
   toasts: [],
@@ -262,6 +265,7 @@ export async function switchWorkspace(id: WorkspaceId): Promise<boolean> {
     manuscriptSplit: false,
     inlineNoteId: null,
     cardsExpanded: null,
+    canvasExpandedNoteId: null,
     outlineCollapsed: [],
   })
   void window.facet.setActiveWorkspace(id)
