@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   closeDialog,
+  confirmAction,
   dismissToast,
   exec,
   restoreFromTrash,
@@ -10,6 +11,8 @@ import {
   type DialogRequest,
 } from '../store/store'
 import { insertAtCursor, insertIntoText } from '../editor/registry'
+import { MarkdownInput } from '../editor/MarkdownInput'
+import { TITLE_ERROR_MESSAGES, normalizeTitle, validateTitle } from '../../shared/domain/titles'
 import { SettingsDialog } from '../settings/SettingsDialog'
 import { ManuscriptDocument } from '../outline/ManuscriptPane'
 import { matchesQuery } from '../../shared/search/tokenizer'
@@ -39,7 +42,8 @@ export function Modal({
     first?.focus()
     // Escape closes only the top-most dialog, wherever focus is.
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return
+      // Escape already handled inside (e.g. closing a completion list) does not close the dialog.
+      if (e.key !== 'Escape' || e.defaultPrevented) return
       const all = document.querySelectorAll('.modal')
       if (all[all.length - 1] !== ref.current) return
       e.stopPropagation()
@@ -58,7 +62,9 @@ export function Modal({
       onKeyDown={(e) => {
         if (e.key === 'Tab' && ref.current) {
           const els = [
-            ...ref.current.querySelectorAll<HTMLElement>('button, input, select, textarea, [tabindex="0"]'),
+            ...ref.current.querySelectorAll<HTMLElement>(
+              'button, input, select, textarea, [tabindex="0"], [contenteditable="true"]',
+            ),
           ].filter((x) => !x.hasAttribute('disabled'))
           if (!els.length) return
           const i = els.indexOf(document.activeElement as HTMLElement)
@@ -120,6 +126,122 @@ function PromptDialog({ d }: { d: Extract<DialogRequest, { kind: 'prompt' }> }) 
           </button>
           <button type="submit" className="btn primary" data-testid="prompt-ok" disabled={!value.trim()}>
             {d.okLabel ?? 'OK'}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  )
+}
+
+/** Body text as stored: no leading blank lines (the file format puts one after the H1), no trailing space. */
+function normalizeNewBody(body: string): string {
+  return body.replace(/^(?:[ \t]*\n)+/, '').replace(/\s+$/, '')
+}
+
+function NewNoteDialog({ d }: { d: Extract<DialogRequest, { kind: 'note-create' }> }) {
+  const notes = useApp((s) => s.snapshot?.state.notes)
+  const [title, setTitle] = useState('')
+  const body = useRef('')
+  const [serverError, setServerError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const closing = useRef(false)
+  const titleError = useMemo(() => {
+    if (!title.trim() || !notes) return null
+    const e = validateTitle(notes, normalizeTitle(title))
+    return e ? TITLE_ERROR_MESSAGES[e] : null
+  }, [title, notes])
+  const error = titleError ?? serverError
+  const done = (id: string | null) => {
+    closeDialog(d)
+    d.resolve(id)
+  }
+  // Closing with something typed asks first, so a stray Escape or click does not lose the body.
+  const requestClose = async () => {
+    if (closing.current || busy) return
+    if (title.trim() || body.current.trim()) {
+      closing.current = true
+      const ok = await confirmAction('新規メモを破棄', '入力したタイトルと本文を破棄します。', {
+        okLabel: '破棄',
+        danger: true,
+      })
+      closing.current = false
+      if (!ok) return
+    }
+    done(null)
+  }
+  const submit = async () => {
+    if (busy || !title.trim() || titleError) return
+    setBusy(true)
+    const r = await exec(
+      {
+        type: 'note.create',
+        title: title.trim(),
+        body: normalizeNewBody(body.current),
+        groupId: d.groupId,
+        canvasPos: d.canvasPos,
+      },
+      { quiet: true },
+    )
+    setBusy(false)
+    if (!r.ok || !r.info.createdId) {
+      setServerError(r.ok ? 'メモを作成できませんでした' : r.message)
+      return
+    }
+    done(r.info.createdId)
+  }
+  return (
+    <Modal title="新規メモ" onClose={() => void requestClose()} testId="new-note-dialog">
+      <form
+        className="new-note-form"
+        onSubmit={(e) => {
+          e.preventDefault()
+          void submit()
+        }}
+      >
+        <label className="field-label" htmlFor="new-note-title">
+          タイトル（保存時に先頭の H1 になります）
+        </label>
+        <input
+          id="new-note-title"
+          className="input full title-input"
+          autoFocus
+          data-testid="new-note-title"
+          aria-invalid={!!error}
+          value={title}
+          onChange={(e) => {
+            setTitle(e.target.value)
+            setServerError(null)
+          }}
+        />
+        {error && (
+          <div className="field-error" role="alert" data-testid="new-note-error">
+            {error}
+          </div>
+        )}
+        <label className="field-label">本文 · Markdown</label>
+        <MarkdownInput
+          ariaLabel="New note body"
+          testId="new-note-body"
+          onChange={(v) => (body.current = v)}
+          onSubmit={() => void submit()}
+        />
+        <div className="helper">[[ でWikiLink、Ctrl+Enter で作成</div>
+        <div className="modal-actions">
+          <button
+            type="button"
+            className="btn"
+            data-testid="new-note-cancel"
+            onClick={() => void requestClose()}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="btn primary"
+            data-testid="new-note-ok"
+            disabled={busy || !title.trim() || !!titleError}
+          >
+            作成
           </button>
         </div>
       </form>
@@ -260,6 +382,8 @@ export function DialogHost() {
             return <PromptDialog key={i} d={d} />
           case 'confirm':
             return <ConfirmDialog key={i} d={d} />
+          case 'note-create':
+            return <NewNoteDialog key={i} d={d} />
           case 'citation':
             return <CitationDialog key={i} d={d} />
           case 'settings':

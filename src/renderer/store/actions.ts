@@ -5,6 +5,7 @@ import {
   confirmAction,
   exec,
   openDialog,
+  promptNewNote,
   promptText,
   selectNote,
   targetNoteIds,
@@ -16,14 +17,12 @@ import {
 const get = useApp.getState
 
 export async function createNote(opts: { groupId?: string; canvasPos?: Point } = {}): Promise<string | null> {
-  const title = await promptText('新規メモ', { label: 'タイトル', okLabel: '作成' })
-  if (title === null) return null
-  const r = await exec({ type: 'note.create', title, groupId: opts.groupId, canvasPos: opts.canvasPos })
-  if (!r.ok || !r.info.createdId) return null
-  selectNote(r.info.createdId, opts.groupId ?? null)
+  const id = await promptNewNote(opts)
+  if (!id) return null
+  selectNote(id, opts.groupId ?? null)
   useApp.setState({ rightOpen: true })
   toast(opts.groupId ? 'メモを作成しました' : '未配置メモを作成しました')
-  return r.info.createdId
+  return id
 }
 
 export async function createGroup(

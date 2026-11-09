@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { readFile } from 'node:fs/promises'
+import { readFile, readdir } from 'node:fs/promises'
 import path from 'node:path'
 import { launch, setupEnv } from './fixtures'
 
@@ -75,9 +75,12 @@ test('DAT-01 duplicate titles rejected in a workspace, allowed across workspaces
   const env = await setupEnv()
   const { app, page } = await launch(env.userData)
   await page.getByTestId('tool-new').click()
-  await page.getByTestId('prompt-input').fill('reverse ZONING')
-  await page.getByTestId('prompt-ok').click()
-  await expect(page.getByTestId('toast').last()).toContainText('同じタイトル')
+  await page.getByTestId('new-note-title').fill('reverse ZONING')
+  await expect(page.getByTestId('new-note-error')).toContainText('同じタイトル')
+  await expect(page.getByTestId('new-note-ok')).toBeDisabled()
+  await page.getByTestId('new-note-cancel').click()
+  await page.getByTestId('confirm-ok').click()
+  await expect(page.getByTestId('new-note-dialog')).toHaveCount(0)
   // Rename an existing note to a duplicate is refused too.
   await page.getByTestId('note-title').fill('Diffusion timescales')
   await page.getByTestId('note-title').press('Enter')
@@ -147,5 +150,76 @@ test('Archive and delete with undo and trash restore', async () => {
   ).toBeVisible()
   const md = await readFile(path.join(env.zao.dir, 'notes', `${env.zao.noteIds.n9}.md`), 'utf8')
   expect(md).toContain('# Unplaced insight')
+  await app.close()
+})
+
+/** The note file whose first line is `# <title>`. */
+async function noteFileByTitle(dir: string, title: string): Promise<string | undefined> {
+  for (const f of await readdir(path.join(dir, 'notes'))) {
+    if (!f.endsWith('.md')) continue
+    const text = await readFile(path.join(dir, 'notes', f), 'utf8')
+    if (text.startsWith(`# ${title}\n`)) return text
+  }
+  return undefined
+}
+
+test('UI-15 new note dialog takes a title and a Markdown body; errors keep the input', async () => {
+  const env = await setupEnv()
+  const { app, page } = await launch(env.userData)
+  await page.getByTestId('tool-new').click()
+  const dialog = page.getByTestId('new-note-dialog')
+  await page.getByTestId('new-note-title').fill('Reverse zoning')
+  await page.getByTestId('new-note-body').click()
+  await page.keyboard.type('First line with [[Recharge frequency]].')
+  await page.keyboard.press('Enter')
+  await page.keyboard.press('Enter')
+  await page.keyboard.type('- item')
+  // Duplicate title: refused in place, the body stays.
+  await expect(page.getByTestId('new-note-error')).toContainText('同じタイトル')
+  await expect(page.getByTestId('new-note-ok')).toBeDisabled()
+  await page.getByTestId('new-note-title').fill('Zoning summary')
+  await expect(page.getByTestId('new-note-error')).toHaveCount(0)
+  await expect(page.getByTestId('new-note-body')).toContainText('- item')
+  await page.getByTestId('new-note-ok').click()
+  await expect(dialog).toHaveCount(0)
+  // Saved as "# Title" + body; shown in the right Note Editor.
+  await expect(page.getByTestId('note-title')).toHaveValue('Zoning summary')
+  await expect(page.getByTestId('note-body')).toContainText('First line with [[Recharge frequency]].')
+  await expect
+    .poll(() => noteFileByTitle(env.zao.dir, 'Zoning summary'))
+    .toBe('# Zoning summary\n\nFirst line with [[Recharge frequency]].\n\n- item')
+
+  // Escape with something typed asks before discarding; "Cancel" there keeps the dialog.
+  await page.getByTestId('tool-new').click()
+  await page.getByTestId('new-note-title').fill('Draft idea')
+  await page.keyboard.press('Escape')
+  await expect(page.getByTestId('confirm-dialog')).toBeVisible()
+  await page.getByTestId('confirm-dialog').getByRole('button', { name: 'Cancel' }).click()
+  await expect(page.getByTestId('new-note-title')).toHaveValue('Draft idea')
+  // Ctrl+Enter in the body creates the note.
+  await page.getByTestId('new-note-body').click()
+  await page.keyboard.type('Quick body')
+  await page.keyboard.press('Control+Enter')
+  await expect(dialog).toHaveCount(0)
+  await expect.poll(() => noteFileByTitle(env.zao.dir, 'Draft idea')).toBe('# Draft idea\n\nQuick body')
+
+  // Creating inside a Paragraph Group keeps the body too.
+  await page.getByTestId('fit-all').click()
+  await page
+    .locator(
+      `[data-testid="canvas-group"][data-group-id="${env.zao.groupIds.p2}"] [data-testid="group-head"]`,
+    )
+    .click({ button: 'right' })
+  await page.getByRole('menuitem', { name: '＋ New note in this group' }).click()
+  await page.getByTestId('new-note-title').fill('Microprobe settings')
+  await page.getByTestId('new-note-body').click()
+  await page.keyboard.type('15 kV, 10 nA.')
+  await page.getByTestId('new-note-ok').click()
+  await expect(
+    page.locator(`[data-testid="canvas-group"][data-group-id="${env.zao.groupIds.p2}"]`),
+  ).toContainText('Microprobe settings')
+  await expect
+    .poll(() => noteFileByTitle(env.zao.dir, 'Microprobe settings'))
+    .toBe('# Microprobe settings\n\n15 kV, 10 nA.')
   await app.close()
 })

@@ -5,6 +5,7 @@ import { applyPatch } from '../../shared/domain/history'
 import type {
   GroupId,
   NoteId,
+  Point,
   SectionId,
   WorkspaceId,
   WorkspaceSnapshot,
@@ -38,6 +39,13 @@ export type DialogRequest =
       okLabel?: string
       danger?: boolean
       resolve: (v: boolean) => void
+    }
+  | {
+      kind: 'note-create'
+      groupId?: GroupId
+      canvasPos?: Point
+      /** The created note's id, or null when cancelled. */
+      resolve: (id: NoteId | null) => void
     }
   | { kind: 'citation'; noteId: NoteId | null }
   | { kind: 'settings' }
@@ -137,6 +145,12 @@ export function promptText(
   opts: { label?: string; initial?: string; okLabel?: string } = {},
 ): Promise<string | null> {
   return new Promise((resolve) => openDialog({ kind: 'prompt', title, ...opts, resolve }))
+}
+
+/** New note dialog (title + Markdown body). The dialog creates the note itself and keeps its
+ * input open on errors; resolves with the created id, or null when cancelled. */
+export function promptNewNote(opts: { groupId?: GroupId; canvasPos?: Point } = {}): Promise<NoteId | null> {
+  return new Promise((resolve) => openDialog({ kind: 'note-create', ...opts, resolve }))
 }
 
 export function confirmAction(

@@ -1211,6 +1211,14 @@ h4 {
 .modal.wide {
   width: min(980px, 94vw);
 }
+.new-note-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.new-note-form .cm-editor {
+  max-height: 50vh;
+}
 .modal-title {
   display: flex;
   align-items: center;

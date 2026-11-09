@@ -1,19 +1,9 @@
 // CodeMirror 6 Markdown editor bound to one note: autosave, [[ completion, link navigation, conflicts.
 import { useEffect, useRef, useState } from 'react'
 import { Annotation, EditorState } from '@codemirror/state'
-import {
-  Decoration,
-  EditorView,
-  MatchDecorator,
-  ViewPlugin,
-  keymap,
-  placeholder,
-  type DecorationSet,
-  type ViewUpdate,
-} from '@codemirror/view'
+import { EditorView, keymap } from '@codemirror/view'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
-import { markdown } from '@codemirror/lang-markdown'
-import { autocompletion, type CompletionContext, type CompletionResult } from '@codemirror/autocomplete'
+import { autocompletion } from '@codemirror/autocomplete'
 import { titleKey } from '../../shared/domain/titles'
 import {
   clearDraft,
@@ -25,85 +15,11 @@ import {
   toast,
   useApp,
 } from '../store/store'
+import { markdownBase, wikiCompletion } from './markdownExtensions'
 import { noteFocused, registerView, rememberCursor } from './registry'
 
 const SAVE_DELAY = 500
 const remoteAnnotation = Annotation.define<boolean>()
-
-const wikiDecorator = new MatchDecorator({
-  regexp: /\[\[[^[\]\n]+?\]\]/g,
-  decoration: () => Decoration.mark({ class: 'cm-wikilink' }),
-})
-const wikiHighlight = ViewPlugin.fromClass(
-  class {
-    decorations: DecorationSet
-    constructor(view: EditorView) {
-      this.decorations = wikiDecorator.createDeco(view)
-    }
-    update(u: ViewUpdate) {
-      this.decorations = wikiDecorator.updateDeco(u, this.decorations)
-    }
-  },
-  { decorations: (v) => v.decorations },
-)
-
-const editorTheme = EditorView.theme(
-  {
-    '&': {
-      backgroundColor: 'var(--input-bg)',
-      color: 'var(--ink)',
-      fontSize: '12.5px',
-      border: '1px solid var(--line-strong)',
-      borderRadius: '5px',
-    },
-    '&.cm-focused': { outline: '2px solid var(--accent)', outlineOffset: '1px' },
-    '.cm-content': {
-      fontFamily: 'var(--font)',
-      lineHeight: '1.6',
-      padding: '8px 2px',
-      caretColor: 'var(--accent)',
-    },
-    '.cm-scroller': { fontFamily: 'var(--font)' },
-    '.cm-cursor': { borderLeftColor: 'var(--accent)' },
-    '.cm-selectionBackground, &.cm-focused .cm-selectionBackground': {
-      backgroundColor: '#4a3b66 !important',
-    },
-    '.cm-wikilink': {
-      color: 'var(--link)',
-      textDecoration: 'underline',
-      textDecorationColor: '#6b5a8c',
-      cursor: 'pointer',
-    },
-    '.cm-tooltip': {
-      backgroundColor: 'var(--panel-hi)',
-      border: '1px solid var(--line-strong)',
-      color: 'var(--ink)',
-    },
-    '.cm-tooltip-autocomplete ul li[aria-selected]': {
-      backgroundColor: 'var(--accent-bg)',
-      color: 'var(--ink)',
-    },
-    '.cm-placeholder': { color: 'var(--muted)' },
-  },
-  { dark: true },
-)
-
-function wikiCompletion(selfId: string) {
-  return (ctx: CompletionContext): CompletionResult | null => {
-    const m = ctx.matchBefore(/\[\[[^[\]\n|]*/)
-    if (!m) return null
-    const snap = useApp.getState().snapshot
-    if (!snap) return null
-    const after = ctx.state.sliceDoc(ctx.pos, ctx.pos + 2)
-    return {
-      from: m.from + 2,
-      options: Object.values(snap.state.notes)
-        .filter((n) => n.id !== selfId && !n.archived)
-        .map((n) => ({ label: n.title, type: 'text', apply: after === ']]' ? n.title : `${n.title}]]` })),
-      validFor: /^[^[\]\n|]*$/,
-    }
-  }
-}
 
 /** Follow a WikiLink with Ctrl/Cmd+click. */
 function linkClick(selfId: string) {
@@ -234,12 +150,8 @@ export function MarkdownEditor({ noteId, autoFocus, minHeight = 200, testId }: P
             ...defaultKeymap,
             ...historyKeymap,
           ]),
-          markdown(),
-          EditorView.lineWrapping,
-          placeholder('Markdown本文… [[ でWikiLink、引用は [@Key]'),
-          wikiHighlight,
+          ...markdownBase(),
           linkClick(noteId),
-          editorTheme,
           EditorView.contentAttributes.of({
             'aria-label': 'Note body',
             'data-testid': testId ?? 'note-body',
