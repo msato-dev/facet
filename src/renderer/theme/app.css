@@ -854,6 +854,21 @@ h4 {
   gap: 6px;
 }
 
+.note-expand {
+  padding: 8px 10px;
+  background: #1f1d26;
+  border: 1px solid #514563;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: auto;
+  text-align: left;
+}
+.note-expand-head {
+  align-items: center;
+}
+
 /* Manuscript */
 .manuscript-split {
   flex: 1;

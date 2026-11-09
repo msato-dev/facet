@@ -16,7 +16,7 @@ import {
   useApp,
 } from '../store/store'
 import { markdownBase, wikiCompletion } from './markdownExtensions'
-import { noteFocused, registerView, rememberCursor } from './registry'
+import { flushSiblings, noteFocused, registerView, rememberCursor, siblingsBusy } from './registry'
 
 const SAVE_DELAY = 500
 const remoteAnnotation = Annotation.define<boolean>()
@@ -66,6 +66,8 @@ export function MarkdownEditor({ noteId, autoFocus, minHeight = 200, testId }: P
     timer: 0 as unknown as ReturnType<typeof setTimeout>,
     inflight: null as Promise<boolean> | null,
   })
+  // Typing held back while another editor of this note finishes saving (see takeOver).
+  const held = useRef({ active: false, texts: [] as string[] })
   const [conflict, setConflict] = useState(false)
   const [status, setStatus] = useState<'saved' | 'pending' | 'saving'>('saved')
 
@@ -131,6 +133,32 @@ export function MarkdownEditor({ noteId, autoFocus, minHeight = 200, testId }: P
   const saveRef = useRef(save)
   saveRef.current = save
 
+  /**
+   * Another editor of this note may still hold unsaved text (typed there just before focus moved here).
+   * Until it is saved and this editor shows the result, typing here is held back and replayed on top,
+   * so this editor never edits an older revision and conflicts with ourselves (ADR-035).
+   */
+  const takeOver = async (view: EditorView) => {
+    try {
+      await flushSiblings(noteId, view)
+      const latest = useApp.getState().snapshot?.state.notes[noteId]
+      if (viewRef.current === view && latest && !sync.current.dirty) {
+        if (view.state.doc.toString() !== latest.body) replaceDoc(view, latest.body)
+        sync.current.baseRev = latest.rev
+      }
+    } finally {
+      const texts = held.current.texts
+      held.current = { active: false, texts: [] }
+      if (viewRef.current === view && texts.length)
+        view.dispatch(view.state.replaceSelection(texts.join('')), {
+          userEvent: 'input.type',
+          scrollIntoView: true,
+        })
+    }
+  }
+  const takeOverRef = useRef(takeOver)
+  takeOverRef.current = takeOver
+
   useEffect(() => {
     if (!host.current) return
     const initial = useApp.getState().snapshot?.state.notes[noteId]
@@ -151,13 +179,27 @@ export function MarkdownEditor({ noteId, autoFocus, minHeight = 200, testId }: P
             ...historyKeymap,
           ]),
           ...markdownBase(),
+          EditorState.transactionFilter.of((tr) => {
+            if (!held.current.active || !tr.docChanged || tr.annotation(remoteAnnotation)) return tr
+            if (tr.isUserEvent('input'))
+              tr.changes.iterChanges((_a, _b, _c, _d, inserted) =>
+                held.current.texts.push(inserted.toString()),
+              )
+            return []
+          }),
           linkClick(noteId),
           EditorView.contentAttributes.of({
             'aria-label': 'Note body',
             'data-testid': testId ?? 'note-body',
           }),
           EditorView.updateListener.of((u) => {
-            if (u.focusChanged && u.view.hasFocus) noteFocused(noteId, u.view)
+            if (u.focusChanged && u.view.hasFocus) {
+              noteFocused(noteId, u.view)
+              if (siblingsBusy(noteId, u.view)) {
+                held.current.active = true // from this keystroke on, before any await
+                void takeOverRef.current(u.view)
+              }
+            }
             if (u.selectionSet) rememberCursor(noteId, u.state.selection.main.head)
             if (u.focusChanged && !u.view.hasFocus) void saveRef.current()
             if (!u.docChanged) return
@@ -184,7 +226,10 @@ export function MarkdownEditor({ noteId, autoFocus, minHeight = 200, testId }: P
       if (initial && initial.rev !== draft.baseRev) setConflict(true)
       else sync.current.timer = setTimeout(() => void saveRef.current(), SAVE_DELAY)
     }
-    const unregister = registerView(noteId, view)
+    const unregister = registerView(noteId, view, {
+      flush,
+      busy: () => sync.current.dirty || !!sync.current.inflight,
+    })
     const unflush = registerFlusher(flush)
     if (autoFocus) view.focus()
     return () => {
@@ -259,11 +304,20 @@ export function MarkdownEditor({ noteId, autoFocus, minHeight = 200, testId }: P
   )
 }
 
+/**
+ * Show text that changed elsewhere. Only the differing middle is replaced, so the cursor keeps its
+ * place; a cursor at the very end stays at the end (text appended elsewhere goes before it).
+ */
 function replaceDoc(view: EditorView, text: string) {
-  const head = Math.min(view.state.selection.main.head, text.length)
+  const old = view.state.doc.toString()
+  let from = 0
+  while (from < old.length && from < text.length && old[from] === text[from]) from++
+  let end = 0
+  while (end < old.length - from && end < text.length - from && old.at(-1 - end) === text.at(-1 - end)) end++
+  const atEnd = view.state.selection.main.empty && view.state.selection.main.head === old.length
   view.dispatch({
-    changes: { from: 0, to: view.state.doc.length, insert: text },
-    selection: { anchor: head },
+    changes: { from, to: old.length - end, insert: text.slice(from, text.length - end) },
+    ...(atEnd ? { selection: { anchor: text.length } } : {}),
     annotations: remoteAnnotation.of(true),
   })
 }
